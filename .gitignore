@@ -34,6 +34,9 @@ $RECYCLE.BIN/
 *.pbd
 *.linf
 *.dnx
+*.bat
+*.ps1
+*.ewd
 Debug/List/*.lst
 Debug/List/*.s
 

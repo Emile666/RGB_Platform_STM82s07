@@ -36,6 +36,136 @@ playfield_color rgb_bufb; // Buffered version of the blue leds
 
 bool vsync = false;       // Vertical-Sync
 
+//-------------------------------------------------------------------------
+// Global variables for lichtkrant() function
+//-------------------------------------------------------------------------
+char    lk1[100];      // Text for top horizontal line
+uint8_t lk1c[100];     // Colour for every character in lk1[]
+char    lk2[100];      // Text for bottom horizontal line
+uint8_t lk2c[100];     // Colour for every character in lk2[]
+
+uint8_t row1_std = 1;  // STD state for top row
+uint8_t cur_row1_idx;  // points to char. being displayed
+int8_t  row1_bit;      // points to bit nr. to display
+uint8_t row2_std = 1;  // STD state for bottom row
+uint8_t cur_row2_idx;  // points to char. being displayed
+int8_t  row2_bit;      // points to bit nr. to display
+uint8_t lk_changed;    // [LK1, LK2]. Flag that text is changed 
+
+/*-------------------------------------------------------------------------
+Purpose   : This is the lichtkrant task. It displays text on two rows,
+independently from each other. Text is displayed horizontally.
+Variables: see list of global variables.
+Returns  : -
+-------------------------------------------------------------------------*/
+void lichtkrant(void)
+{
+    short int maxch = MAX_CHAR_Y;
+    short int i, cx, cy, colour, chi, bit;
+    
+    switch (row1_std)
+    {
+    case 1: //Init., place 4 characters
+        for (i = 0; i < maxch; i++)
+        {
+            //PrintChar(rgb_buf,8,i<<3,lk1[maxch-1-i],lk1c[maxch-1-i],HOR);
+        }
+        if (strlen(lk1) > maxch)
+        {
+            cur_row1_idx = 4; // points to new character
+            row1_bit     = 7; // start with bits 7
+            row1_std     = 2; // goto next state
+        } // if
+        break;
+    case 2: //SHL1 entire playfield and add new character
+        if (lk_changed & LK1)
+        {
+            lk_changed &= ~LK1; // reset flag
+            row1_std    = 1;
+        }
+        else
+        {
+            for (cy = SIZE_Y-1; cy > 0; cy--)
+                for (cx = 8; cx < SIZE_X; cx++)
+                {
+                    //colour = GetPixel(rgb_buf, cx, cy-1);
+                    //SetPixel(rgb_buf, cx, cy, colour);
+                } // for
+            chi = (short int)lk1[cur_row1_idx]; // get new character
+            colour = lk1c[cur_row1_idx];
+            if (chi < 96) chi -= 32; // Convert from ASCII to internal Atari code
+            for (bit = 0; bit < 8; bit++)
+            {
+//                if (atascii[chi][7-bit] & (1<<(row1_bit)))
+//                    SetPixel(rgb_buf,8+bit,0,colour);
+//                else SetPixel(rgb_buf,8+bit,0,EMPTY);
+            } // for
+            if (--row1_bit < 0)
+            {
+                row1_bit = 7; // start with bits 7
+                if (++cur_row1_idx >= strlen(lk1))
+                {
+                    cur_row1_idx = 0; // points to beginning of text
+                } // if
+            } // else
+        } // else
+        break;
+    } // switch (row1_std)
+    
+    switch (row2_std)
+    {
+    case 1: //Init., place 4 characters
+        for (i = 0; i < maxch; i++)
+        {
+            //PrintChar(rgb_buf,0,i<<3,lk2[maxch-1-i],lk2c[maxch-1-i],HOR);
+        }
+        if (strlen(lk2) > maxch)
+        {
+            cur_row2_idx = 4; // points to new character
+            row2_bit     = 7; // start with bits 7
+            row2_std     = 2; // goto next state
+        } // if
+        break;
+    case 2: //SHL1 entire playfield and add new character
+        if (lk_changed & LK2)
+        {
+            lk_changed &= ~LK2; // reset flag
+            row2_std    = 1;
+        }
+        else
+        {
+            for (cy = SIZE_Y-1; cy > 0; cy--)
+                for (cx = 0; cx < SIZE_X-8; cx++)
+                {
+                    //colour = GetPixel(rgb_buf, cx, cy-1);
+                    //SetPixel(rgb_buf, cx, cy, colour);
+                } // for
+            chi = (short int)lk2[cur_row2_idx]; // get new character
+            colour = lk2c[cur_row2_idx];
+            if (chi < 96) chi -= 32; // Convert from ASCII to internal Atari code
+            for (bit = 0; bit < 8; bit++)
+            {
+//                if (atascii[chi][7-bit] & (1<<(row2_bit)))
+//                    SetPixel(rgb_buf,bit,0,colour);
+//                else SetPixel(rgb_buf,bit,0,EMPTY);
+            } // for
+            if (--row2_bit < 0)
+            {
+                row2_bit = 7; // start with bits 7
+                if (++cur_row2_idx >= strlen(lk2))
+                {
+                    cur_row2_idx = 0; // points to beginning of text
+                } // if
+                if (strlen(lk2)<=maxch)
+                {
+                    row2_std = 1; // Did text become smaller?
+                } // if
+            } // else
+        } // else
+        break;
+    } // switch (row2_std)
+} // lichtkrant() 
+
 /*------------------------------------------------------------------
   Purpose  : This function prints a welcome message to the serial
              port together with the current CVS revision number.
