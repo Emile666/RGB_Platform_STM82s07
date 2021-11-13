@@ -18,14 +18,15 @@
   along with this software.  If not, see <http://www.gnu.org/licenses/>.
   ================================================================== */ 
 #include "rgb_platform_stm8s207.h"
-#include "stm8_hw_init.h"
-
+#include "pixel.h"
+      
+extern uint8_t atascii[128][8]; // Atari XL Font
 extern char rs232_inbuf[];
 char *revision_nr = "0.30\n"; // RGB Platform SW revision number
 
 //-------------------------------------------------------------------------
 // Array which holds the Red, Green & Blue bits for every RGB-LED.
-// Bit 2: Red, Bit 1: Green, Bit 0: Blue
+// Bit 2: Red, Bit 1: Green, Bit 0: Blue, see defines in .h file
 //-------------------------------------------------------------------------
 playfield_color rgb_ledr = {0}; // The actual status of the red leds
 playfield_color rgb_ledg = {0}; // The actual status of the green leds
@@ -39,8 +40,8 @@ bool vsync = false;       // Vertical-Sync
 //-------------------------------------------------------------------------
 // Global variables for lichtkrant() function
 //-------------------------------------------------------------------------
-char    lk1[100];      // Text for top horizontal line
-uint8_t lk1c[100];     // Colour for every character in lk1[]
+char    lk1[100] = "TEST"; // Text for top horizontal line
+uint8_t lk1c[100]= {RED};  // Colour for every character in lk1[]
 char    lk2[100];      // Text for bottom horizontal line
 uint8_t lk2c[100];     // Colour for every character in lk2[]
 
@@ -60,17 +61,18 @@ Returns  : -
 -------------------------------------------------------------------------*/
 void lichtkrant(void)
 {
-    short int maxch = MAX_CHAR_Y;
-    short int i, cx, cy, colour, chi, bit;
+    uint8_t maxch = MAX_CHAR_Y;
+    uint8_t i, cx, cy, col, chi, bit, slen;
     
+    slen = strlen(lk1);
     switch (row1_std)
     {
     case 1: //Init., place 4 characters
         for (i = 0; i < maxch; i++)
-        {
-            //PrintChar(rgb_buf,8,i<<3,lk1[maxch-1-i],lk1c[maxch-1-i],HOR);
+        {   //        x   y    ch            col        orientation
+            PrintChar(8,i<<3,lk1[maxch-1-i],lk1c[maxch-1-i],HOR);
         }
-        if (strlen(lk1) > maxch)
+        if (slen > maxch)
         {
             cur_row1_idx = 4; // points to new character
             row1_bit     = 7; // start with bits 7
@@ -88,22 +90,22 @@ void lichtkrant(void)
             for (cy = SIZE_Y-1; cy > 0; cy--)
                 for (cx = 8; cx < SIZE_X; cx++)
                 {
-                    //colour = GetPixel(rgb_buf, cx, cy-1);
-                    //SetPixel(rgb_buf, cx, cy, colour);
+                    col = GetPixel(cx, cy-1);
+                    SetPixel(cx, cy, col);
                 } // for
-            chi = (short int)lk1[cur_row1_idx]; // get new character
-            colour = lk1c[cur_row1_idx];
+            chi = (uint8_t)lk1[cur_row1_idx]; // get new character
+            col = lk1c[cur_row1_idx];
             if (chi < 96) chi -= 32; // Convert from ASCII to internal Atari code
             for (bit = 0; bit < 8; bit++)
             {
-//                if (atascii[chi][7-bit] & (1<<(row1_bit)))
-//                    SetPixel(rgb_buf,8+bit,0,colour);
-//                else SetPixel(rgb_buf,8+bit,0,EMPTY);
+                if (atascii[chi][7-bit] & (1<<(row1_bit)))
+                     SetPixel(8+bit,0,col);
+                else SetPixel(8+bit,0,BLACK);
             } // for
             if (--row1_bit < 0)
             {
                 row1_bit = 7; // start with bits 7
-                if (++cur_row1_idx >= strlen(lk1))
+                if (++cur_row1_idx >= slen)
                 {
                     cur_row1_idx = 0; // points to beginning of text
                 } // if
@@ -112,14 +114,15 @@ void lichtkrant(void)
         break;
     } // switch (row1_std)
     
+    slen = strlen(lk2);
     switch (row2_std)
     {
     case 1: //Init., place 4 characters
         for (i = 0; i < maxch; i++)
         {
-            //PrintChar(rgb_buf,0,i<<3,lk2[maxch-1-i],lk2c[maxch-1-i],HOR);
+            PrintChar(0,i<<3,lk2[maxch-1-i],lk2c[maxch-1-i],HOR);
         }
-        if (strlen(lk2) > maxch)
+        if (slen > maxch)
         {
             cur_row2_idx = 4; // points to new character
             row2_bit     = 7; // start with bits 7
@@ -137,26 +140,26 @@ void lichtkrant(void)
             for (cy = SIZE_Y-1; cy > 0; cy--)
                 for (cx = 0; cx < SIZE_X-8; cx++)
                 {
-                    //colour = GetPixel(rgb_buf, cx, cy-1);
-                    //SetPixel(rgb_buf, cx, cy, colour);
+                    col = GetPixel(cx, cy-1);
+                    SetPixel(cx, cy, col);
                 } // for
-            chi = (short int)lk2[cur_row2_idx]; // get new character
-            colour = lk2c[cur_row2_idx];
+            chi = (uint8_t)lk2[cur_row2_idx]; // get new character
+            col = lk2c[cur_row2_idx];         // get color of new character
             if (chi < 96) chi -= 32; // Convert from ASCII to internal Atari code
             for (bit = 0; bit < 8; bit++)
             {
-//                if (atascii[chi][7-bit] & (1<<(row2_bit)))
-//                    SetPixel(rgb_buf,bit,0,colour);
-//                else SetPixel(rgb_buf,bit,0,EMPTY);
+                if (atascii[chi][7-bit] & (1<<(row2_bit)))
+                     SetPixel(bit,0,col);
+                else SetPixel(bit,0,BLACK);
             } // for
             if (--row2_bit < 0)
             {
                 row2_bit = 7; // start with bits 7
-                if (++cur_row2_idx >= strlen(lk2))
+                if (++cur_row2_idx >= slen)
                 {
                     cur_row2_idx = 0; // points to beginning of text
                 } // if
-                if (strlen(lk2)<=maxch)
+                if (slen <= maxch)
                 {
                     row2_std = 1; // Did text become smaller?
                 } // if
@@ -218,7 +221,7 @@ int main(void)
     i2c_init_bb(I2C_CH0);      // Init. I2C bus 0 for bit-banging
 	
     // Initialize all the tasks for the RGB Platform
-    //add_task(lm35_task ,"lm35_task" , 30, 2000); // Process Temperature from LM35 sensor
+    add_task(lichtkrant, "lkrant", 100, 100); // Process Temperature from LM35 sensor
 	
     __enable_interrupt();       // set global interrupt enable, start task-scheduler
 	
@@ -244,7 +247,6 @@ int main(void)
         } // switch
         if (vsync)
         {
-            //lichtkrant();
             copy_playfield();
             vsync = false; // reset vertical sync
     	} // if

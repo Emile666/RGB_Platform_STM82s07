@@ -20,6 +20,7 @@
   ================================================================== */ 
 #include "stm8_hw_init.h"
 #include "scheduler.h"
+#include "pixel.h"
 
 extern uint32_t t2_millis;       // needed for delay_msec()
 extern playfield_color rgb_ledr; // The actual status of the red leds

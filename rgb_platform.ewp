@@ -1604,6 +1604,9 @@
         </settings>
     </configuration>
     <file>
+        <name>$PROJ_DIR$\atascii.c</name>
+    </file>
+    <file>
         <name>$PROJ_DIR$\command_interpreter.c</name>
     </file>
     <file>
@@ -1622,6 +1625,18 @@
         <name>$PROJ_DIR$\i2c_bb.h</name>
     </file>
     <file>
+        <name>$PROJ_DIR$\pixel.c</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\pixel.h</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\random.c</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\random.h</name>
+    </file>
+    <file>
         <name>$PROJ_DIR$\rgb_platform_stm8s207.c</name>
     </file>
     <file>
@@ -1638,6 +1653,18 @@
     </file>
     <file>
         <name>$PROJ_DIR$\stm8_hw_init.h</name>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\tetris.c</name>
+        <excluded>
+            <configuration>Debug</configuration>
+        </excluded>
+    </file>
+    <file>
+        <name>$PROJ_DIR$\tetris.h</name>
+        <excluded>
+            <configuration>Debug</configuration>
+        </excluded>
     </file>
     <file>
         <name>$PROJ_DIR$\uart.c</name>

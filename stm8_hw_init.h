@@ -76,8 +76,6 @@
 #define MAX_Y        (NR_OF_BOARDS * SIZE_Y)
 #define MAX_CHAR_Y   (MAX_Y>>3)
 
-typedef uint16_t  playfield_color[MAX_Y]; // Typedef for 1 playfield color
-
 //-----------------------------
 // PORT A defines
 //-----------------------------
@@ -171,7 +169,6 @@ typedef uint16_t  playfield_color[MAX_Y]; // Typedef for 1 playfield color
 #define HSI (0xE1) /* internal 16 MHz oscillator */
 #define LSI (0xD2) /* internal 128 kHz oscillator */
 #define HSE (0xB4) /* external 24 MHz oscillator */
-
 
 // Function prototypes
 void     buzzer(void);

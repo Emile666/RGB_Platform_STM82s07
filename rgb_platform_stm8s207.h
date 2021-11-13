@@ -27,14 +27,7 @@
 #include "command_interpreter.h"
 #include "scheduler.h"
 
-// List of directions
-//#define LEFT  (0)
-//#define RIGHT (1)
-#define HOR   (0)
-#define VERT  (1)
-#define LK1   (0x01)
-#define LK2   (0x02)
-
-
+void lichtkrant(void);
 void print_revision_nr(void);
+void copy_playfield(void);
 #endif /* _RGB_PLATFORM_STM8S207_H_ */
