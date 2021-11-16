@@ -50,17 +50,17 @@ void scheduler_isr(void)
     
     while ((index < MAX_TASKS) && task_list[index].pFunction)
     {
-        //First go through the initial delay
+        // First go through the initial delay
         if(task_list[index].Delay > 0)
         {
             task_list[index].Delay--;
         } // if
         else
-        {	//now we decrement the actual period counter 
+        {   // Now we decrement the actual period counter 
             task_list[index].Counter--;
             if(task_list[index].Counter == 0)
             {
-                //Set the flag and reset the counter;
+                // Set the flag and reset the counter;
                 task_list[index].Status |= TASK_READY;
             } // if
         } // else
@@ -100,7 +100,7 @@ void dispatch_tasks(void)
         } // if
         index++;
     } // while
-    //go to sleep till next tick!
+    // go to sleep till next tick!
 } // dispatch_tasks()
 
 /*-----------------------------------------------------------------------------
@@ -163,7 +163,7 @@ uint8_t enable_task(char *Name)
     } // if
     else return ERR_EMPTY;
     if (!found)
-        return ERR_NAME;
+         return ERR_NAME;
     else return NO_ERR;	
 } // enable_task()
 

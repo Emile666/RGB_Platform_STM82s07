@@ -33,7 +33,6 @@ uint8_t rs232_ptr = 0;                // index in RS232 buffer
   Purpose  : Scan all devices on the I2C bus on all channels of the PCA9544
   Variables: 
          ch: the I2C channel number, 0 is the main channel
-  rs232_udp: [RS232_USB, ETHERNET_UDP] Response via RS232/USB or Ethernet/Udp
  Returns  : -
   ---------------------------------------------------------------------------*/
 void i2c_scan(enum I2C_CH ch)
@@ -43,22 +42,22 @@ void i2c_scan(enum I2C_CH ch)
     int     i;     // Leave this as an int!
     
     sprintf(s,"I2C[%1d]: ",ch);
-    uart_printf(s); // print to UART or ETH
+    uart1_printf(s); // print to UART1
     for (i = 0x02; i < 0xff; i+=2)
     {
         if (i2c_start_bb(ch,i) == I2C_ACK)
         {
             sprintf(s,"0x%0x ",i);
-            uart_printf(s); // print to UART or ETH
+            uart1_printf(s); // print to UART1
             x++;
         } // if
         i2c_stop_bb(ch);
     } // for
     if (!x) 
     {
-        uart_printf("-"); // print to UART or ETH
+        uart1_printf("-"); // print to UART1
     } // if	
-    uart_printf("\n");
+    uart1_printf("\n");
 } // i2c_scan()
 
 /*-----------------------------------------------------------------------------
@@ -71,9 +70,9 @@ uint8_t rs232_command_handler(void)
   char    ch;
   static uint8_t cmd_rcvd = 0;
   
-  if (!cmd_rcvd && uart_kbhit())
+  if (!cmd_rcvd && uart1_kbhit())
   { // A new character has been received
-    ch = tolower(uart_getc()); // get character as lowercase
+    ch = tolower(uart1_getc()); // get character as lowercase
 	switch (ch)
 	{
             case '\r': break;
@@ -105,7 +104,7 @@ void list_all_tasks(void)
     uint8_t index = 0;
     char    s[50];
     
-    //uart_printf("Task-Name,T(ms),Stat,T(ms),M(ms)\n");
+    //uart1_printf("Task-Name,T(ms),Stat,T(ms),M(ms)\n");
     //go through the active tasks
     if(task_list[index].Period != 0)
     {
@@ -114,7 +113,7 @@ void list_all_tasks(void)
             sprintf(s,"%s,%d,%x,%d,%d\n", task_list[index].Name, 
                     task_list[index].Period  , task_list[index].Status, 
                     task_list[index].Duration, task_list[index].Duration_Max);
-            uart_printf(s);
+            uart1_printf(s);
             index++;
         } // while
     } // if
@@ -156,10 +155,11 @@ uint8_t execute_single_command(char *s)
                } // switch
                break;
                
-	   default: rval = ERR_CMD;
-                   sprintf(s2,"ERR.CMD[%s]\n",s);
-                   uart_printf(s2);
-           break;
+	   default: 
+               rval = ERR_CMD;
+               sprintf(s2,"ERR.CMD[%s]\n",s);
+               uart1_printf(s2);
+               break;
    } // switch
    return rval;	
 } // execute_single_command()

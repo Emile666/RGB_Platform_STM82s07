@@ -25,10 +25,17 @@
 #define TX_BUF_SIZE (30)
 #define RX_BUF_SIZE (10)
 
-void    uart_init(uint8_t clk);
-void    uart_printf(char *s);
-bool    uart_kbhit(void);
-uint8_t uart_getc(void);
-void    uart_putc(uint8_t ch);
+// UART1: Used for general communication
+void    uart1_init(uint8_t clk);
+void    uart1_printf(char *s);
+bool    uart1_kbhit(void);
+uint8_t uart1_getc(void);
+void    uart1_putc(uint8_t ch);
 
+// UART3: Used for ESP8266 communication
+void    uart3_init(uint8_t clk);
+void    uart3_putc(uint8_t ch);
+bool    uart3_kbhit(void);
+uint8_t uart3_getc(void);
+void    uart3_putc(uint8_t ch);
 #endif

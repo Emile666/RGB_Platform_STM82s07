@@ -25,8 +25,8 @@
       MCU pin-name            Function    |    MCU pin-name        Function
    ---------------------------------------|-----------------------------------------
    01 NRST                    <NRST>      | 64 PD7/TLI                -
-   02 PA1/OSCIN               XTAL 24 MHz | 63 PD6/UART3_RX           RX2
-   03 PA2/OSCOUT              XTAL 24 MHz | 62 PD5/UART3_TX           TX2
+   02 PA1/OSCIN               XTAL 24 MHz | 63 PD6/UART3_RX           RX3
+   03 PA2/OSCOUT              XTAL 24 MHz | 62 PD5/UART3_TX           TX3
    04 VSSIO_1                 GND         | 61 PD4(HS)/TIM2_CH1[BEEP] -
    05 VSS                     GND         | 60 PD3(HS)/TIM2_CH2       -
    06 VCAP                    <VCAP>      | 59 PD2(HS)/TIM3_CH1       -
@@ -35,18 +35,18 @@
    09 PA3/TIM2_CH3[TIME3_CH1] -           | 56 PE0(HS)/CLK_CCO        -
    10 PA4(HS)/UART1_RX        RX1         | 55 PE1/I2C_SCL            SCL0
    11 PA5(HS)/UART1_TX        TX1         | 54 PE2/I2C_SDA            SDA0
-   12 PA6(HS)/UART1_CK        -           | 53 PE3/TIM1_BKIN          SCL1 (not used)
-   13 PF7/AIN15               UP          | 52 PE4                    SDA1 (not used)
+   12 PA6(HS)/UART1_CK        -           | 53 PE3/TIM1_BKIN          -
+   13 PF7/AIN15               UP          | 52 PE4                    SW0
    14 PF6/AIN14               DOWN        | 51 PG7                    -
    15 PF5/AIN13               LEFT        | 50 PG6                    IRQ_LED
    16 PF4/AIN12               RIGHT       | 49 PG5                    BG_LED 
    ---------------------------------------|-----------------------------------------
    17 PF3/AIN11               OK          | 48 PI0                    -
    18 VREF+                   +5V filt.   | 47 PG4                    -
-   19 VDDA                    +5V         | 46 PG3                    -
-   20 VSSA                    GND         | 45 PG2                    -
-   21 VREF-                   GND         | 44 PG1/CAN_RX             -
-   22 PF0/AIN10               -           | 43 PG0/CAN_TX             -
+   19 VDDA                    +5V         | 46 PG3                    SCL2 (not used)
+   20 VSSA                    GND         | 45 PG2                    SDA2 (not used)
+   21 VREF-                   GND         | 44 PG1/CAN_RX             SCL1 (not used)
+   22 PF0/AIN10               -           | 43 PG0/CAN_TX             SDA1 (not used)
    23 PB7/AIN7                ROWENA      | 42 PC7(HS)/SPI_MISO       -
    24 PB6/AIN6                PCB2        | 41 PC6(HS)/SPI_MOSI       -
    25 PB5/AIN5                PCB1        | 40 VDDIO_2                +5V
@@ -55,8 +55,8 @@
    28 PB2/AIN2                RSEL2       | 37 PC4(HS)/TIM1_CH4       STCP
    29 PB1/AIN1                RSEL1       | 36 PC3(HS)/TIM1_CH3       SDIN_R
    30 PB0/AIN0                RSEL0       | 35 PC2(HS)/TIM1_CH2       SDIN_G
-   31 PE7/AIN8                -           | 34 PC1(HS)/TIM1_CH1       SDIN_B
-   32 PE6/AIN9            SDA2 (not used) | 33 PE5/SPI_NSS            SCL2 (not used)
+   31 PE7/AIN8                SW3         | 34 PC1(HS)/TIM1_CH1       SDIN_B
+   32 PE6/AIN9                SW2         | 33 PE5/SPI_NSS            SW1
    --------------------------------------------------------------------------------
    NOTE  : PORTF and PORTG pins do NOT have interrupt capability!
 =================================================================================== */
@@ -117,16 +117,17 @@
 //-----------------------------
 // PORT D defines
 //-----------------------------
-// RX2 & TX2 are initialized by the UART module
+// RX3 & TX3 are initialized by the UART module
 // SWIM is initialized by the JTAG module
 
 //-----------------------------
 // PORT E defines
 //-----------------------------
-#define SDA2        (0x40) /* PE6 SDA2, not used */
-#define SCL2        (0x20) /* PE5 SCL2, not used */
-#define SDA1        (0x10) /* PE4 SDA1, not used */
-#define SCL1        (0x08) /* PE3 SCL1, not used */
+#define SW3         (0x80) /* PE7 DIP-switch 3 */
+#define SW2         (0x40) /* PE6 DIP-switch 2 */
+#define SW1         (0x20) /* PE5 DIP-switch 1 */
+#define SW0         (0x10) /* PE4 DIP-switch 0 */
+#define SW_ALL      (SW3 | SW2 | SW1 | SW0)
 #define SDA0        (0x04) /* PE2 SDA0 */
 #define SCL0        (0x02) /* PE1 SCL0 */
 
@@ -145,6 +146,10 @@
 //-----------------------------
 #define IRQ_LED     (0x40) /* PG6, shows interrupt status */       
 #define BG_LED      (0x20) /* PG5, shows background process status */       
+#define SCL2        (0x08) /* PE3 SCL2, not used */
+#define SDA2        (0x04) /* PE2 SDA2, not used */
+#define SCL1        (0x02) /* PE1 SCL1, not used */
+#define SDA1        (0x01) /* PE0 SDA1, not used */
 
 // use these defines to directly control the output-pins
 #define IRQ_LEDb     (PG_ODR_ODR6)

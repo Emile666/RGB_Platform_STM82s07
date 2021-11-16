@@ -35,9 +35,9 @@
 
 enum I2C_CH
 {
-    I2C_CH0 = 0, /* I2C channel 0, used for all DS2482 devices */
-    I2C_CH1 = 1, /* I2C channel 1, used for LM92 HLT device */
-    I2C_CH2 = 2  /* I2C channel 2, used for LM92 MLT device */
+    I2C_CH0 = 0, /* I2C channel 0, used for communication with DS3231 */
+    I2C_CH1 = 1, /* I2C channel 1, not used */
+    I2C_CH2 = 2  /* I2C channel 2, not used */
 }; // enum
 
 //-----------------------------------------------------------------
@@ -98,19 +98,19 @@ enum I2C_CH
 #define SDA0_1     (PE_ODR |=  SDA0) 			  /* Set SDA to 1 */
 #define SDA0_rd    (PE_IDR &   SDA0) 			  /* Read from SDA */
 
-// I2C channel 1 is used for external LM92 HLT communication
-#define SCL1_in    (PE_DDR &= ~SCL1) 			  /* Set SCL to input */
-#define SCL1_out   {PE_DDR |=  SCL1; PE_CR1 |=  SCL1;}    /* Set SCL to push-pull output */
-#define SCL1_0     {PE_ODR &= ~SCL1; i2c_delay_5usec(1);} /* Set SCL to 0 */
-#define SCL1_1     {PE_ODR |=  SCL1; i2c_delay_5usec(1);} /* Set SCL to 1 */
-#define SCL1_rd    (PE_IDR &   SCL1) 			  /* Read from SCL */
-#define SDA1_in    (PE_DDR &= ~SDA1) 			  /* Set SDA to input */
-#define SDA1_out   {PE_DDR |=  SDA1; PE_CR1 |=  SDA1;}    /* Set SDA to push-pull output */
-#define SDA1_0     (PE_ODR &= ~SDA1) 			  /* Set SDA to 0 */
-#define SDA1_1     (PE_ODR |=  SDA1) 			  /* Set SDA to 1 */
-#define SDA1_rd    (PE_IDR &   SDA1) 			  /* Read from SDA */
+// I2C channel 1 is not used
+#define SCL1_in    (PG_DDR &= ~SCL1) 			  /* Set SCL to input */
+#define SCL1_out   {PG_DDR |=  SCL1; PG_CR1 |=  SCL1;}    /* Set SCL to push-pull output */
+#define SCL1_0     {PG_ODR &= ~SCL1; i2c_delay_5usec(1);} /* Set SCL to 0 */
+#define SCL1_1     {PG_ODR |=  SCL1; i2c_delay_5usec(1);} /* Set SCL to 1 */
+#define SCL1_rd    (PG_IDR &   SCL1) 			  /* Read from SCL */
+#define SDA1_in    (PG_DDR &= ~SDA1) 			  /* Set SDA to input */
+#define SDA1_out   {PG_DDR |=  SDA1; PG_CR1 |=  SDA1;}    /* Set SDA to push-pull output */
+#define SDA1_0     (PG_ODR &= ~SDA1) 			  /* Set SDA to 0 */
+#define SDA1_1     (PG_ODR |=  SDA1) 			  /* Set SDA to 1 */
+#define SDA1_rd    (PG_IDR &   SDA1) 			  /* Read from SDA */
 
-// I2C channel 2 is used for external LM92 MLT communication
+// I2C channel 2 is not used
 #define SCL2_in    (PG_DDR &= ~SCL2) 			  /* Set SCL to input */
 #define SCL2_out   {PG_DDR |=  SCL2; PG_CR1 |=  SCL2;}    /* Set SCL to push-pull output */
 #define SCL2_0     {PG_ODR &= ~SCL2; i2c_delay_5usec(1);} /* Set SCL to 0 */
@@ -135,7 +135,7 @@ static inline void i2c_delay_5usec(uint16_t x)
       
     for (j = 0; j < x; j++)
     {
-        for (i = 0; i < 80; i++) ; // 80 * 62.5 nsec (16 MHz) = 5 usec.
+        for (i = 0; i < 120; i++) ; // 120 * 41.7 nsec (24 MHz) = 5 usec.
     } // for j
 } // i2c_delay_5usec()
 

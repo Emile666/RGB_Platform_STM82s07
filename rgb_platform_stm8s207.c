@@ -55,14 +55,14 @@ uint8_t lk_changed;    // [LK1, LK2]. Flag that text is changed
 
 /*-------------------------------------------------------------------------
 Purpose   : This is the lichtkrant task. It displays text on two rows,
-independently from each other. Text is displayed horizontally.
-Variables: see list of global variables.
+            independently from each other. Text is displayed horizontally.
+            Variables: see list of global variables.
 Returns  : -
 -------------------------------------------------------------------------*/
 void lichtkrant(void)
 {
     uint8_t maxch = MAX_CHAR_Y;
-    uint8_t i, cx, cy, col, chi, bit, slen;
+    uint8_t i, cy, col, chi, bit, slen;
     
     slen = strlen(lk1);
     switch (row1_std)
@@ -75,7 +75,7 @@ void lichtkrant(void)
         if (slen > maxch)
         {
             cur_row1_idx = 4; // points to new character
-            row1_bit     = 7; // start with bits 7
+            row1_bit     = 7; // start with bit 7
             row1_std     = 2; // goto next state
         } // if
         break;
@@ -88,11 +88,14 @@ void lichtkrant(void)
         else
         {
             for (cy = SIZE_Y-1; cy > 0; cy--)
-                for (cx = 8; cx < SIZE_X; cx++)
-                {
-                    col = GetPixel(cx, cy-1);
-                    SetPixel(cx, cy, col);
-                } // for
+            {
+                 rgb_bufr[cy] &= 0x00FF; // clear bits 15-08
+                 rgb_bufr[cy] |= (rgb_bufr[cy-1] & 0xFF00);
+                 rgb_bufg[cy] &= 0x00FF; // clear bits 15-08
+                 rgb_bufg[cy] |= (rgb_bufg[cy-1] & 0xFF00);
+                 rgb_bufb[cy] &= 0x00FF; // clear bits 15-08
+                 rgb_bufb[cy] |= (rgb_bufb[cy-1] & 0xFF00);
+            } // for cy
             chi = (uint8_t)lk1[cur_row1_idx]; // get new character
             col = lk1c[cur_row1_idx];
             if (chi < 96) chi -= 32; // Convert from ASCII to internal Atari code
@@ -104,7 +107,7 @@ void lichtkrant(void)
             } // for
             if (--row1_bit < 0)
             {
-                row1_bit = 7; // start with bits 7
+                row1_bit = 7; // start with bit 7
                 if (++cur_row1_idx >= slen)
                 {
                     cur_row1_idx = 0; // points to beginning of text
@@ -125,7 +128,7 @@ void lichtkrant(void)
         if (slen > maxch)
         {
             cur_row2_idx = 4; // points to new character
-            row2_bit     = 7; // start with bits 7
+            row2_bit     = 7; // start with bit 7
             row2_std     = 2; // goto next state
         } // if
         break;
@@ -138,11 +141,14 @@ void lichtkrant(void)
         else
         {
             for (cy = SIZE_Y-1; cy > 0; cy--)
-                for (cx = 0; cx < SIZE_X-8; cx++)
-                {
-                    col = GetPixel(cx, cy-1);
-                    SetPixel(cx, cy, col);
-                } // for
+            {
+                 rgb_bufr[cy] &= 0xFF00; // clear bits 07-00
+                 rgb_bufr[cy] |= (rgb_bufr[cy-1] & 0x00FF);
+                 rgb_bufg[cy] &= 0xFF00; // clear bits 07-00
+                 rgb_bufg[cy] |= (rgb_bufg[cy-1] & 0x00FF);
+                 rgb_bufb[cy] &= 0xFF00; // clear bits 07-00
+                 rgb_bufb[cy] |= (rgb_bufb[cy-1] & 0x00FF);
+            } // for cy
             chi = (uint8_t)lk2[cur_row2_idx]; // get new character
             col = lk2c[cur_row2_idx];         // get color of new character
             if (chi < 96) chi -= 32; // Convert from ASCII to internal Atari code
@@ -178,8 +184,8 @@ void lichtkrant(void)
   ------------------------------------------------------------------*/
 void print_revision_nr(void)
 {
-    uart_printf("RGB Platform STM8S207R8, rev. ");
-    uart_printf(revision_nr);
+    uart1_printf("RGB Platform STM8S207R8, rev. ");
+    uart1_printf(revision_nr);
 } // print_ebrew_revision()
 
 /*-------------------------------------------------------------------------
@@ -211,36 +217,41 @@ int main(void)
 {
     char    s[35];     // Needed for uart_printf() and sprintf()
     uint8_t clk;       // which clock is active
+    uint8_t dip_sw;    // status of dip-switches
     
     __disable_interrupt();
     // For 24 MHz, set ST-LINK->Option Bytes...->Flash_Wait_states to 1
     clk = initialise_system_clock(HSE); // Set system-clock to 24 MHz
-    uart_init(clk);            // UART init. to 115200,8,N,1
-    setup_timers(clk);         // Set Timer 2 to 1 kHz and timer1 and timer3 for PWM output
-    setup_gpio_ports();        // Init. needed output-ports for LED and keys
-    i2c_init_bb(I2C_CH0);      // Init. I2C bus 0 for bit-banging
-	
+    uart1_init(clk);            // UART1 init. to 115200,8,N,1
+    uart3_init(clk);            // UART3 init. to 115200,8,N,1
+    setup_timers(clk);          // Set Timer 2 to 1 kHz
+    setup_gpio_ports();         // Init. needed output-ports
+    i2c_init_bb(I2C_CH0);       // Init. I2C bus 0 for bit-banging
+    dip_sw = PE_IDR & (SW_ALL); // Read dip-switches
+    
     // Initialize all the tasks for the RGB Platform
-    add_task(lichtkrant, "lkrant", 100, 100); // Process Temperature from LM35 sensor
+    add_task(lichtkrant, "lkrant", 100, 100); // Lichtkrant task
 	
-    __enable_interrupt();       // set global interrupt enable, start task-scheduler
+    __enable_interrupt(); // set global interrupt enable, start task-scheduler
 	
-    print_revision_nr();
+    print_revision_nr();  // print revision nr to UART 1
     sprintf(s,"CLK: 0x%X ",clk);
-    uart_printf(s);
-    if      (clk == HSI) uart_printf("HSI\n");
-    else if (clk == LSI) uart_printf("LSI\n");
-    else if (clk == HSE) uart_printf("HSE\n");
-
+    uart1_printf(s);
+    if      (clk == HSI) uart1_printf("HSI\n");
+    else if (clk == LSI) uart1_printf("LSI\n");
+    else if (clk == HSE) uart1_printf("HSE\n");
+    sprintf(s,"DIP-SW: 0x%X\n",dip_sw);
+    uart1_printf(s); // print status of dip-switches
+    
     while (true)
     {   // main loop
         dispatch_tasks(); // run the task-scheduler
         switch (rs232_command_handler()) // run command handler continuously
         {
-            case ERR_CMD: uart_printf("Command Error\n"); 
+            case ERR_CMD: uart1_printf("Command Error\n"); 
                           break;
             case ERR_NUM: sprintf(s,"Number Error (%s)\n",rs232_inbuf);
-                          uart_printf(s);  
+                          uart1_printf(s);  
                           break;
             case ERR_I2C: break; // do not print anything 
             default     : break;

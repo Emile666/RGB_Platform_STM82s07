@@ -107,18 +107,18 @@ void buzzer(void)
 __interrupt void TIM2_UPD_OVF_IRQHandler(void)
 {
     IRQ_LEDb = 1;      // Start Time-measurement
-    PB_ODR   = 0x00;   // Disable playfield, all rows off
+    PB_ODR   = 0x00;   // Disable playfield (ROWENA), all rows off (PCB2-0, RSEL3-0)
     t2_millis++;       // update millisecond counter
     scheduler_isr();   // call the ISR routine for the task-scheduler
     
-    uint16_t colmask = 0x01; // start with bit 0
+    uint16_t colmask = 0x0001; // start with bit 0 to send to shift-register
     for (uint8_t i = 0; i < SIZE_X; i++)
     {   // shift color bits to hardware shift-registers
         SDIN_Rb   = (rgb_ledr[current_row] & colmask) ? 1 : 0;
         SDIN_Gb   = (rgb_ledg[current_row] & colmask) ? 1 : 0;
         SDIN_Bb   = (rgb_ledb[current_row] & colmask) ? 1 : 0;
         SHCPb     = 1; // set clock for shift-register;
-        colmask <<= 1; // next bit
+        colmask <<= 1; // select next bit
         SHCPb     = 0; // set clock to 0 again
     } // for i
     // Now clock bits from shift-registers to output-registers
@@ -232,13 +232,14 @@ void setup_gpio_ports(void)
     PE_ODR     |=  (SCL0 | SDA0); // Must be set here, or I2C will not work
     PE_DDR     |=  (SCL0 | SDA0); // Set as outputs
     PE_CR1     |=  (SCL0 | SDA0); // Set to push-pull
+    PE_DDR     &=  ~(SW3 | SW2 | SW1 | SW0); // Set as inputs
+    PE_CR1     |=   (SW3 | SW2 | SW1 | SW0); // Enable pull-up resistors
     
     //-----------------------------
     // PORT F defines
     //-----------------------------
-    // LM35 (PF0) is controlled by ADC device, PF7-PF5 are free
     PF_DDR     &=  ~STICK_ALL; // Set as inputs
-    PF_CR1     |=   STICK_ALL; // Enable pull-up resistor
+    PF_CR1     |=   STICK_ALL; // Enable pull-up resistors
     
     //-----------------------------
     // PORT G defines
