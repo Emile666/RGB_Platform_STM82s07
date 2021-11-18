@@ -30,13 +30,13 @@ extern uint8_t  atascii[128][8]; // Atari XL Font
   Variables: -
   Returns  : -
   -------------------------------------------------------------------------*/
-void ClearScreen(void)
+void clearScreen(void)
 {
     for (uint8_t i = 0; i < MAX_Y; i++)
     {
         rgb_bufr[i] = rgb_bufg[i] = rgb_bufb[i] = BLACK;
     } // for i
-} // ClearScreen()
+} // clearScreen()
 
 /*-------------------------------------------------------------------------
  Purpose   : This function sets the color of a pixel in the playfield
@@ -45,9 +45,9 @@ void ClearScreen(void)
   	     col: the color code for the pixel
   Returns  : -
   -------------------------------------------------------------------------*/
-void SetPixel(uint8_t x, uint8_t y, uint8_t col)
+void setPixel(int8_t x, int8_t y, uint8_t col)
 {
-    if ((x < SIZE_X) && (y < MAX_Y))
+    if ((x >= 0) && (y >= 0) && (x < SIZE_X) && (y < MAX_Y))
     {
         uint16_t bt = (1<<x);
         if ((col & RED)   ==  RED)   
@@ -60,7 +60,7 @@ void SetPixel(uint8_t x, uint8_t y, uint8_t col)
              rgb_bufb[y]  |=  bt;
         else rgb_bufb[y]  &= ~bt;
     } // if
-} // SetPixel()
+} // setPixel()
 
 /*-------------------------------------------------------------------------
  Purpose   : This function returns the color of a pixel in the playfield
@@ -68,11 +68,11 @@ void SetPixel(uint8_t x, uint8_t y, uint8_t col)
   	     y  : the y position of the pixel in the playfield
   Returns  : the color code for the pixel
   -------------------------------------------------------------------------*/
-uint8_t GetPixel(uint8_t x, uint8_t y)
+uint8_t getPixel(int8_t x, int8_t y)
 {
     uint8_t col = BLACK;
     
-    if ((x < SIZE_X) && (y < MAX_Y))
+    if ((x >= 0) && (y >= 0) && (x < SIZE_X) && (y < MAX_Y))
     {
         uint16_t bt = (1<<x);
         if ((rgb_bufr[y] & bt) == bt) col |= RED;
@@ -80,7 +80,7 @@ uint8_t GetPixel(uint8_t x, uint8_t y)
         if ((rgb_bufb[y] & bt) == bt) col |= BLUE;
     } // if
     return col;
-} // GetPixel()
+} // getPixel()
 
 /*-------------------------------------------------------------------------
  Purpose   : This function draws a character with the specified colour. The
@@ -94,13 +94,13 @@ uint8_t GetPixel(uint8_t x, uint8_t y)
   	  	  	 hv       : Horizontal (HOR) or Vertical (VERT) orientation
   Returns  : 1 = block can move ; 0 = block can NOT move
   -------------------------------------------------------------------------*/
-void PrintChar(uint8_t x, uint8_t y, uint8_t ch, uint8_t col, bool hv)
+void printChar(int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv)
 {
     short int byte, data, bit, chi;
     
     chi = (short int)ch;
     if (chi < 96) chi -= 32; // Convert from ASCII to internal Atari code
-    if ((x <= SIZE_X) && (y <= MAX_Y))
+    if ((x >= 0) && (y >= 0) && (x < SIZE_X) && (y < MAX_Y))
     {
         for (byte = 0; byte < 8; byte++)
         {
@@ -110,19 +110,19 @@ void PrintChar(uint8_t x, uint8_t y, uint8_t ch, uint8_t col, bool hv)
                 if (hv == VERT)
                 {   // Vertical
                     if (data & (1<<(7-bit)))
-                         SetPixel(x+bit,y+byte,col);
-                    else SetPixel(x+bit,y+byte,BLACK);
+                         setPixel(x+bit,y+byte,col);
+                    else setPixel(x+bit,y+byte,BLACK);
                 } // if
                 else
                 {   // Horizontal
                     if (data & (1<<(7-bit)))
-                         SetPixel(x+byte,y+7-bit,col);
-                    else SetPixel(x+byte,y+7-bit,BLACK);
+                         setPixel(x+byte,y+7-bit,col);
+                    else setPixel(x+byte,y+7-bit,BLACK);
                 } // else
             } // for
         } // for
     } // if
-} // PrintChar
+} // printChar
 
 /*-------------------------------------------------------------------------
  Purpose   : This function draws a line in a playfield
@@ -133,12 +133,13 @@ void PrintChar(uint8_t x, uint8_t y, uint8_t ch, uint8_t col, bool hv)
   	    col: the colour of the line to draw
   Returns  : -
   -------------------------------------------------------------------------*/
-void DrawLine(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t col)
+void drawLine(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col)
 {
     uint8_t steep = (abs(y1 - y0) > abs(x1 - x0));
-    uint8_t tx0, tx1, ty0, ty1;
-    tx0 = x0; tx1 = x1;
-    ty0 = y0; ty1 = y1;
+    int8_t tx0 = x0;
+    int8_t tx1 = x1;
+    int8_t ty0 = y0;
+    int8_t ty1 = y1;
 
     if (steep)
     {
@@ -163,8 +164,8 @@ void DrawLine(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t col)
     else ystep = -1;
     for (x = tx0; x <= tx1; x++)
     {
-        if (steep) SetPixel(y, x, col);
-        else 	   SetPixel(x, y, col);
+        if (steep) setPixel(y, x, col);
+        else 	   setPixel(x, y, col);
         error -= deltay;
         if (error < 0)
         {
@@ -172,7 +173,7 @@ void DrawLine(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t col)
             error += deltax;
         } // if
     } // for
-} // DrawLine()
+} // drawLine()
 
 /*-------------------------------------------------------------------------
  Purpose   : This function fills a rectangle in a playfield
@@ -183,10 +184,11 @@ void DrawLine(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t col)
   	     col: the colour of the rectangle to fill
   Returns  : -
   -------------------------------------------------------------------------*/
-void FillRect(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t col)
+void fillRect(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col)
 {
-    uint8_t x, y;
+    int8_t x, y;
+    
     for (y = y0; y <= y1; y++)
             for (x = x0; x <= x1; x++)
-                    SetPixel(x, y, col);
-} // FillRect()
+                    setPixel(x, y, col);
+} // fillRect()

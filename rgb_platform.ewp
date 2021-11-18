@@ -1656,15 +1656,9 @@
     </file>
     <file>
         <name>$PROJ_DIR$\tetris.c</name>
-        <excluded>
-            <configuration>Debug</configuration>
-        </excluded>
     </file>
     <file>
         <name>$PROJ_DIR$\tetris.h</name>
-        <excluded>
-            <configuration>Debug</configuration>
-        </excluded>
     </file>
     <file>
         <name>$PROJ_DIR$\uart.c</name>

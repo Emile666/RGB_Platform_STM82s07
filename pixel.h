@@ -25,8 +25,8 @@
 // List of directions
 //#define LEFT  (0)
 //#define RIGHT (1)
-#define HOR   (false) /* Horizontal orientation for PrintChar() */
-#define VERT  (true)  /* Vertical   orientation for PrintChar() */
+#define HOR   (false) /* Horizontal orientation for printChar() */
+#define VERT  (true)  /* Vertical   orientation for printChar() */
 #define LK1   (0x01)
 #define LK2   (0x02)
 
@@ -43,11 +43,11 @@
 
 typedef uint16_t  playfield_color[MAX_Y]; // Typedef for 1 playfield color
 
-void    ClearScreen(void);
-void    SetPixel(uint8_t x, uint8_t y, uint8_t col);
-uint8_t GetPixel(uint8_t x, uint8_t y);
-void    PrintChar(uint8_t x, uint8_t y, uint8_t ch, uint8_t col, bool hv);
-void    DrawLine(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t col);
-void    FillRect(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, uint8_t col);
+void    clearScreen(void);
+void    setPixel(int8_t x, int8_t y, uint8_t col);
+uint8_t getPixel(int8_t x, int8_t y);
+void    printChar(int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv);
+void    drawLine(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col);
+void    fillRect(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col);
 
 #endif

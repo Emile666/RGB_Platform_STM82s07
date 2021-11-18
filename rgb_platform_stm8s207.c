@@ -19,7 +19,8 @@
   ================================================================== */ 
 #include "rgb_platform_stm8s207.h"
 #include "pixel.h"
-      
+#include "tetris.h"
+
 extern uint8_t atascii[128][8]; // Atari XL Font
 extern char rs232_inbuf[];
 char *revision_nr = "0.30\n"; // RGB Platform SW revision number
@@ -70,7 +71,7 @@ void lichtkrant(void)
     case 1: //Init., place 4 characters
         for (i = 0; i < maxch; i++)
         {   //        x   y    ch            col        orientation
-            PrintChar(8,i<<3,lk1[maxch-1-i],lk1c[maxch-1-i],HOR);
+            printChar(8,i<<3,lk1[maxch-1-i],lk1c[maxch-1-i],HOR);
         }
         if (slen > maxch)
         {
@@ -102,8 +103,8 @@ void lichtkrant(void)
             for (bit = 0; bit < 8; bit++)
             {
                 if (atascii[chi][7-bit] & (1<<(row1_bit)))
-                     SetPixel(8+bit,0,col);
-                else SetPixel(8+bit,0,BLACK);
+                     setPixel(8+bit,0,col);
+                else setPixel(8+bit,0,BLACK);
             } // for
             if (--row1_bit < 0)
             {
@@ -123,7 +124,7 @@ void lichtkrant(void)
     case 1: //Init., place 4 characters
         for (i = 0; i < maxch; i++)
         {
-            PrintChar(0,i<<3,lk2[maxch-1-i],lk2c[maxch-1-i],HOR);
+            printChar(0,i<<3,lk2[maxch-1-i],lk2c[maxch-1-i],HOR);
         }
         if (slen > maxch)
         {
@@ -155,8 +156,8 @@ void lichtkrant(void)
             for (bit = 0; bit < 8; bit++)
             {
                 if (atascii[chi][7-bit] & (1<<(row2_bit)))
-                     SetPixel(bit,0,col);
-                else SetPixel(bit,0,BLACK);
+                     setPixel(bit,0,col);
+                else setPixel(bit,0,BLACK);
             } // for
             if (--row2_bit < 0)
             {
@@ -231,7 +232,9 @@ int main(void)
     
     // Initialize all the tasks for the RGB Platform
     add_task(lichtkrant, "lkrant", 100, 100); // Lichtkrant task
-	
+    add_task(tetrisMain, "tetris", 150, 500); // Tetris game
+    disable_task("tetris"); // disable Tetris for now
+    
     __enable_interrupt(); // set global interrupt enable, start task-scheduler
 	
     print_revision_nr();  // print revision nr to UART 1

@@ -28,8 +28,7 @@ extern playfield_color rgb_ledg; // The actual status of the green leds
 extern playfield_color rgb_ledb; // The actual status of the blue leds
 extern bool vsync;               // Vertical-Sync
 
-uint8_t x; // debug
-uint8_t current_row = 0;         // Index which row in the playfield is enabled
+uint8_t current_row = 0;         // Index which row in the hardware is enabled
 
 //------------------------------------------------
 // Buzzer variables
