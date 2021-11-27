@@ -54,9 +54,13 @@ uint8_t cur_row2_idx;  // points to char. being displayed
 int8_t  row2_bit;      // points to bit nr. to display
 uint8_t lk_changed;    // [LK1, LK2]. Flag that text is changed 
 
+char dows[8][3] = {"","Ma","Di","Wo","Do","Vr","Za","Zo"};
+
 /*-------------------------------------------------------------------------
 Purpose   : This is the lichtkrant task. It displays text on two rows,
             independently from each other. Text is displayed horizontally.
+			The top-row runs twice as fast as the bottom row, top-row shows
+			date, time and temperature, bottom row shows a custom text.
             Variables: see list of global variables.
 Returns  : -
 -------------------------------------------------------------------------*/
@@ -64,8 +68,28 @@ void lichtkrant(void)
 {
     uint8_t maxch = MAX_CHAR_Y;
     uint8_t i, cy, col, chi, bit, slen;
-    
-    slen = strlen(lk1);
+    //char    s2[40]; // Used for printing date and time
+    //int16_t temp;   // DS3231 temperature
+    //Time    p;      // DS3231 date and time
+	BG_LEDb = 1;        // Time-measurement
+
+/* 	ds3231_gettime(&p); // get date and time from RTC
+	strcpy(lk1,dows[p.dow & 0x07]);
+	sprintf(s2," %02d-%02d-%d, %02d:%02d:%02d ",p.date,p.mon,p.year,p.hour,p.min,p.sec); 
+	strcat(lk1,s2);
+	if (dst_active) strcat(lk1,"winter");
+	else            strcat(lk1,"zomer");
+	sprintf(s2,"tijd, temperatuur = %d.",temp>>2);
+	strcat(lk1,s2);
+    switch (temp & 0x03)
+	{
+		 case 0: strcat(lk1,"00"); break;
+		 case 1: strcat(lk1,"25"); break;
+		 case 2: strcat(lk1,"50"); break;
+		 case 3: strcat(lk1,"75"); break;
+	} // switch
+	strcat(lk1,"    ");
+ */    slen = strlen(lk1);
     switch (row1_std)
     {
     case 1: //Init., place 4 characters
@@ -174,7 +198,53 @@ void lichtkrant(void)
         } // else
         break;
     } // switch (row2_std)
+    BG_LEDb = 0; // Stop time-measurement
 } // lichtkrant() 
+
+/*-------------------------------------------------------------------------
+Purpose   : This is a test task. It lights the red, green and blue leds once
+            every 2 seconds.
+ Variables: -
+Returns   : -
+-------------------------------------------------------------------------*/
+void test_playfield(void)
+{
+    static uint8_t cntr = RED;
+    uint8_t i;
+    
+   BG_LEDb = 1;        // Time-measurement
+   switch (cntr)
+   {
+        case RED:
+            for (i = 0; i < MAX_Y; i++)
+            {   // set bits 15..00 of row i
+                 rgb_bufr[i]  = 0xFFFF; // set red bits
+                 rgb_bufg[i]  = 0x0000; // clear green bits
+                 rgb_bufb[i]  = 0x0000; // clear blue bits
+            } // for i
+            cntr = GREEN;
+            break;
+        case GREEN:
+            for (i = 0; i < MAX_Y; i++)
+            {   // set bits 15..00 of row i
+                 rgb_bufr[i]  = 0x0000; // clear red bits
+                 rgb_bufg[i]  = 0xFFFF; // set green bits
+                 rgb_bufb[i]  = 0x0000; // clear blue bits
+            } // for i
+            cntr = BLUE;
+            break;
+        case BLUE:
+            for (i = 0; i < MAX_Y; i++)
+            {   // set bits 15..00 of row i
+                 rgb_bufr[i]  = 0x0000; // clear red bits
+                 rgb_bufg[i]  = 0x0000; // clear green bits
+                 rgb_bufb[i]  = 0xFFFF; // set blue bits
+            } // for i
+            cntr = RED;
+            break;
+   } // switch
+   BG_LEDb = 0; // Stop time-measurement
+} // test_playfield()
 
 /*------------------------------------------------------------------
   Purpose  : This function prints a welcome message to the serial
@@ -188,6 +258,21 @@ void print_revision_nr(void)
     uart1_printf("RGB Platform STM8S207R8, rev. ");
     uart1_printf(revision_nr);
 } // print_ebrew_revision()
+
+/*------------------------------------------------------------------
+  Purpose  : This function reads the four dip-switches and returns
+             a number between 0 and 15.
+  Variables: -
+  Returns  : [0..15], 
+  ------------------------------------------------------------------*/
+uint8_t read_dip_switches(void)
+{
+    uint8_t dip_sw = PE_IDR & (SW_ALL); // Read dip-switches
+    
+    dip_sw >>= 4;            // dip-switches are in PE7..PE4
+    dip_sw = ~dip_sw & 0x0F; // invert switches (low-active)
+    return dip_sw;
+} // read_dip_switches()
 
 /*-------------------------------------------------------------------------
   Purpose   : This functions copies the buffer built by the program into
@@ -221,20 +306,22 @@ int main(void)
     uint8_t dip_sw;    // status of dip-switches
     
     __disable_interrupt();
-    // For 24 MHz, set ST-LINK->Option Bytes...->Flash_Wait_states to 1
     clk = initialise_system_clock(HSE); // Set system-clock to 24 MHz
-    uart1_init(clk);            // UART1 init. to 115200,8,N,1
-    uart3_init(clk);            // UART3 init. to 115200,8,N,1
-    setup_timers(clk);          // Set Timer 2 to 1 kHz
-    setup_gpio_ports();         // Init. needed output-ports
-    i2c_init_bb(I2C_CH0);       // Init. I2C bus 0 for bit-banging
-    dip_sw = PE_IDR & (SW_ALL); // Read dip-switches
+    uart1_init(clk);                    // UART1 init. to 115200,8,N,1
+    uart3_init(clk);                    // UART3 init. to 115200,8,N,1
+    setup_timers(clk,FREQ_4KHZ);        // Set Timer 2 for interrupt frequency
+    setup_gpio_ports();                 // Init. needed output-ports
+    i2c_init_bb(I2C_CH0);               // Init. I2C bus 0 for bit-banging
+    dip_sw = read_dip_switches();       // Read dip-switches
     
     // Initialize all the tasks for the RGB Platform
-    add_task(lichtkrant, "lkrant", 100, 100); // Lichtkrant task
-    add_task(tetrisMain, "tetris", 150, 500); // Tetris game
-    disable_task("tetris"); // disable Tetris for now
-    
+    scheduler_init(); // init. task-scheduler
+    switch (dip_sw)
+    {
+        case 1 : add_task(tetrisMain    , "tetris", 150, 500); break; // Tetris game
+        case 15: add_task(test_playfield, "test"  , 175,2000); break; // Test
+       default : add_task(lichtkrant    , "lkrant", 100, 100); break; // Lichtkrant task
+    } // switch
     __enable_interrupt(); // set global interrupt enable, start task-scheduler
 	
     print_revision_nr();  // print revision nr to UART 1
@@ -245,6 +332,7 @@ int main(void)
     else if (clk == HSE) uart1_printf("HSE\n");
     sprintf(s,"DIP-SW: 0x%X\n",dip_sw);
     uart1_printf(s); // print status of dip-switches
+    set_buzzer(FREQ_4KHZ,1);
     
     while (true)
     {   // main loop

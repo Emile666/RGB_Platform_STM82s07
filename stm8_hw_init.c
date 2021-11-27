@@ -47,53 +47,67 @@ uint8_t  bz_freq = FREQ_1KHZ;
   Variables: freq: [FREQ_1KHz, FREQ_2KHz, FREQ_4KHz]
   Returns  : -
   ------------------------------------------------------------------*/
-void buzzer(void)
+void buzzer_isr(void)
 {
     switch (bz_std)
     {
         case BZ_OFF:   BEEP_CSR_BEEPEN  = 0;       //  Turn off the beep.
-                       BEEP_CSR_BEEPSEL = bz_freq; //  0=1 kHz, 1=2 kHz, 2=4 kHz
-                       BEEP_CSR_BEEPDIV = 14;      //  Set beep divider to 129/8 kHz
+                       BEEP_CSR_BEEPSEL = (bz_freq & 0x03); //  0=1 kHz, 1=2 kHz, 2=4 kHz
+                       BEEP_CSR_BEEPDIV = 14;      //  Set beep divider to 128/16 kHz
                        if (bz_on) 
                        {
-                               bz_tmr = 0;
-                               bz_rpt = 0;
-                               bz_dbl = false;
-                               bz_std = BZ_ON;
+                           bz_tmr = 0;
+                           bz_rpt = 0;
+                           bz_dbl = false;
+                           bz_std = BZ_ON;
                        } // if
                        break;
         case BZ_ON:    BEEP_CSR_BEEPEN = 1;    //  Turn-on the beep.
-                       if (++bz_tmr > 50) 
+                       if (++bz_tmr > 200) 
                        {
-                               bz_tmr = 0;
-                               if (!bz_dbl)
-                                    bz_std = BZ_SHORT;
-                               else bz_std = BZ_BURST;
+                           bz_tmr = 0;
+                           if (!bz_dbl)
+                                bz_std = BZ_SHORT;
+                           else bz_std = BZ_BURST;
                        } // if
                        break;
         case BZ_SHORT: BEEP_CSR_BEEPEN  = 0;   //  Turn off the beep.
                        bz_dbl = true;
-                       if (++bz_tmr >= 50)
+                       if (++bz_tmr >= 200)
                        {
-                               bz_tmr = 0;
-                               bz_std = BZ_ON;
+                           bz_tmr = 0;
+                           bz_std = BZ_ON;
                        } // if
                        break;		
         case BZ_BURST: BEEP_CSR_BEEPEN  = 0;   //  Turn off the beep.
-                       if (++bz_tmr > 500)
+                       if (++bz_tmr > 2000)
                        {
-                             bz_tmr = 0;  
-                             bz_dbl = false;
-                             if (++bz_rpt >= bz_rpt_max) 
-                             {
-                                      bz_on  = false;
-                                      bz_std = BZ_OFF;
-                             } // if
-                             else bz_std = BZ_ON;
+                         bz_tmr = 0;  
+                         bz_dbl = false;
+                         if (++bz_rpt >= bz_rpt_max) 
+                         {
+                              bz_on  = false;
+                              bz_std = BZ_OFF;
+                         } // if
+                         else bz_std = BZ_ON;
                        } // if
                        break;					   						 
     } // switch
-} // buzzer()
+} // buzzer_isr()
+
+/*------------------------------------------------------------------
+  Purpose  : This function sets the parameters for the buzzer ISR
+             routine.
+  Variables: freq: the buzzer-frequency [FREQ_1KHZ, FREQ_2KHZ, FREQ_4KHZ]
+             nrbeeps: the number of consecutive beeps
+  Returns  : -
+  ------------------------------------------------------------------*/
+void set_buzzer(uint8_t freq, uint8_t nrbeeps)
+{
+    bz_freq    = (freq & 0x03); // frequency of beep
+    bz_rpt_max = nrbeeps;
+    bz_on      = true;
+} // set_buzzer()
 
 /*------------------------------------------------------------------
   Purpose  : This is the Timer-interrupt routine for the Timer 2 
@@ -106,9 +120,9 @@ void buzzer(void)
 __interrupt void TIM2_UPD_OVF_IRQHandler(void)
 {
     IRQ_LEDb = 1;      // Start Time-measurement
-    PB_ODR   = 0x00;   // Disable playfield (ROWENA), all rows off (PCB2-0, RSEL3-0)
     t2_millis++;       // update millisecond counter
     scheduler_isr();   // call the ISR routine for the task-scheduler
+    buzzer_isr();      // buzzer ISR routine
     
     uint16_t colmask = 0x0001; // start with bit 0 to send to shift-register
     for (uint8_t i = 0; i < SIZE_X; i++)
@@ -125,14 +139,13 @@ __interrupt void TIM2_UPD_OVF_IRQHandler(void)
     //---------------------------------------------------------------
     // Select the next row: this varies from 0 to MAX_Y
     //---------------------------------------------------------------
-    PB_ODR = (current_row & 0x7F); // Set PCB nr and ROW nr in hardware
+    PB_ODR = 0x80 | (current_row & 0x7F); // ROWENA=1 + Set PCB nr and ROW nr
     STCPb  = 0; // set clock to 0 again
     if (++current_row >= MAX_Y)
     {   // cycle through rows, enable one at a time
         current_row = 0;
         vsync       = true; // set Vsync flag
     } // if
-    ROWENAb      = 1; // Enable playfield again
     IRQ_LEDb     = 0; // Stop Time-measurement
     TIM2_SR1_UIF = 0; // Reset the interrupt otherwise it will fire again straight away.
 } // TIM2_UPD_OVF_IRQHandler()
@@ -140,6 +153,7 @@ __interrupt void TIM2_UPD_OVF_IRQHandler(void)
 /*-----------------------------------------------------------------------------
   Purpose  : This routine initialises the system clock to run at 24 MHz.
              It uses the external HSE oscillator. 
+             NOTE: For 24 MHz, set ST-LINK->Option Bytes...->Flash_Wait_states to 1
   Variables: clk: which oscillator to use: HSI (0xE1), HSE (0xB4) or LSI (0xD2)
   Returns  : which oscillator is active: HSI (0xE1), HSE (0xB4) or LSI (0xD2)
   ---------------------------------------------------------------------------*/
@@ -167,27 +181,62 @@ uint8_t initialise_system_clock(uint8_t clk)
 } // initialise_system_clock()
 
 /*-----------------------------------------------------------------------------
-  Purpose  : This routine initialises Timer 2 to generate a 1 kHz interrupt.
-             16 MHz: 16 MHz / (  16 *  1000) = 1000 Hz (1000 = 0x03E8)
-             24 MHz: 24 MHz / (  16 *  1500) = 1000 Hz (1500 = 0x05DC)
-  Variables: -
+  Purpose  : This routine initialises Timer 2 to generate a 1, 2 or 4 kHz interrupt.
+  Variables: clk : [HSE,HSI]
+             freq: [FREQ_1KHZ,FREQ_2KHZ,FREQ_4KHz]
   Returns  : -
   ---------------------------------------------------------------------------*/
-void setup_timers(uint8_t clk)
+void setup_timers(uint8_t clk, uint8_t freq)
 {
-    // Set Timer 2 for an interrupt frequency of 1 kHz
-    // 16 MHz: TIM2_ARRH=0x03, TIM2_ARRL=0xE8 (0x03E8 = 1000)
-    // 24 MHz: TIM2_ARRH=0x05, TIM2_ARRL=0xDC (0x05DC = 1500)
+    //----------------------------------------------------------
+    // Timer 2 values for an interrupt frequency of 1 kHz
+    //   16 MHz: TIM2_ARRH=0x03, TIM2_ARRL=0xE8 (0x03E8 = 1000)
+    //   24 MHz: TIM2_ARRH=0x05, TIM2_ARRL=0xDC (0x05DC = 1500)
+    //----------------------------------------------------------
+    // Timer 2 values for an interrupt frequency of 2 kHz
+    //   16 MHz: TIM2_ARRH=0x01, TIM2_ARRL=0xF4 (0x01F4 =  500)
+    //   24 MHz: TIM2_ARRH=0x02, TIM2_ARRL=0xEE (0x02EE =  750)
+    //----------------------------------------------------------
+    // Timer 2 values for an interrupt frequency of 4 kHz
+    //   16 MHz: TIM2_ARRH=0x00, TIM2_ARRL=0xFA (0x00FA =  250)
+    //   24 MHz: TIM2_ARRH=0x01, TIM2_ARRL=0x77 (0x0177 =  375)
+    //----------------------------------------------------------
     TIM2_PSCR    = 0x04;  //  Prescaler = 16
     if (clk == HSE)
-    {   // external HSE oscillator
-        TIM2_ARRH    = 0x05;  //  High byte of 1500 for 24 MHz
-        TIM2_ARRL    = 0xDC;  //  Low  byte of 1500 for 24 MHz
+    {   // external 24 MHz HSE oscillator
+        if (freq == FREQ_2KHZ)
+        {
+            TIM2_ARRH    = 0x02;  //  High byte for 24 MHz -> 2 kHZ
+            TIM2_ARRL    = 0xEE;  //  Low  byte for 24 MHz -> 2 kHz
+        } // if
+        else if (freq == FREQ_4KHZ)
+        {
+            TIM2_ARRH    = 0x01;  //  High byte for 24 MHz -> 4 kHZ
+            TIM2_ARRL    = 0x77;  //  Low  byte for 24 MHz -> 4 kHz
+        } // else if
+        else
+        {
+            TIM2_ARRH    = 0x05;  //  High byte for 24 MHz -> 1 kHZ
+            TIM2_ARRL    = 0xDC;  //  Low  byte for 24 MHz -> 1 kHz
+        } // else
     } // if
     else
-    {   // internal HSI oscillator
-        TIM2_ARRH    = 0x03;  //  High byte of 1000 for 16 MHz
-        TIM2_ARRL    = 0xE8;  //  Low  byte of 1000 for 16 MHz
+    {   // internal 16 MHz HSI oscillator
+        if (freq == FREQ_2KHZ)
+        {
+            TIM2_ARRH    = 0x01;  //  High byte for 16 MHz -> 2 kHZ
+            TIM2_ARRL    = 0xF4;  //  Low  byte for 16 MHz -> 2 kHz
+        } // if
+        else if (freq == FREQ_4KHZ)
+        {
+            TIM2_ARRH    = 0x00;  //  High byte for 16 MHz -> 4 kHZ
+            TIM2_ARRL    = 0xFA;  //  Low  byte for 16 MHz -> 4 kHz
+        } // else if
+        else
+        {
+            TIM2_ARRH    = 0x03;  //  High byte for 16 MHz -> 1 kHZ
+            TIM2_ARRL    = 0xE8;  //  Low  byte for 16 MHz -> 1 kHz
+        } // else
     } // else
     TIM2_IER_UIE = 1;     //  Enable the update interrupts
     TIM2_CR1_CEN = 1;     //  Finally enable the timer
@@ -208,10 +257,10 @@ void setup_gpio_ports(void)
     //-----------------------------
     // PORT B defines
     //-----------------------------
-    PB_DDR     |=   ROWENA | PCBSEL | ROWSEL;   // Set as output
-    PB_CR1     |=   ROWENA | PCBSEL | ROWSEL;   // Set to push-pull
+    PB_DDR     |=   (ROWENA | PCBSEL | ROWSEL); // Set as output
+    PB_CR1     |=   (ROWENA | PCBSEL | ROWSEL); // Set to push-pull
     PB_ODR     &=  ~(ROWENA | PCBSEL | ROWSEL); // All outputs 0 at power-up
-
+    
     //-----------------------------
     // PORT C defines
     //-----------------------------
@@ -224,6 +273,7 @@ void setup_gpio_ports(void)
     //-----------------------------
     // RX2 & TX2 are initialized by the UART module
     // SWIM is initialized by the JTAG module
+    // BEEP function: set ST-LINK->Option Bytes->AFR7 to Alternate Active
     
     //-----------------------------
     // PORT E defines

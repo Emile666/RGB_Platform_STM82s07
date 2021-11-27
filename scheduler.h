@@ -26,7 +26,7 @@
 
 #define MAX_TASKS	  (3)
 #define MAX_MSEC      (60000)
-#define TICKS_PER_SEC (1000L)
+#define TICKS_PER_SEC (4000L)
 #define NAME_LEN         (12) 
 
 #define TASK_READY    (0x01)
@@ -40,6 +40,9 @@
 #define ERR_EMPTY     (0x05)
 #define ERR_MAX_TASKS (0x06)
 
+#define DISABLE_OTHER_TASKS (true)
+#define THIS_TASK_ONLY      (false)
+      
 typedef struct _task_struct
 {
     void     (* pFunction)(void); // Function pointer
@@ -57,7 +60,7 @@ void    scheduler_isr(void);  // run-time function for scheduler
 void    dispatch_tasks(void); // run all tasks that are ready
 uint8_t add_task(void (*task_ptr)(), char *Name, uint16_t delay, uint16_t period);
 uint8_t set_task_time_period(uint16_t Period, char *Name);
-uint8_t enable_task(char *Name);
+uint8_t enable_task(char *Name, bool exclusive);
 uint8_t disable_task(char *Name);
 
 #endif

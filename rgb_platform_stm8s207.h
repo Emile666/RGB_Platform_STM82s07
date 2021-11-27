@@ -27,7 +27,9 @@
 #include "command_interpreter.h"
 #include "scheduler.h"
 
-void lichtkrant(void);
-void print_revision_nr(void);
-void copy_playfield(void);
+void    lichtkrant(void);
+void    test_playfield(void);
+void    print_revision_nr(void);
+uint8_t read_dip_switches(void);
+void    copy_playfield(void);
 #endif /* _RGB_PLATFORM_STM8S207_H_ */

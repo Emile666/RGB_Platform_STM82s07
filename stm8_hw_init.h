@@ -27,7 +27,7 @@
    01 NRST                    <NRST>      | 64 PD7/TLI                -
    02 PA1/OSCIN               XTAL 24 MHz | 63 PD6/UART3_RX           RX3
    03 PA2/OSCOUT              XTAL 24 MHz | 62 PD5/UART3_TX           TX3
-   04 VSSIO_1                 GND         | 61 PD4(HS)/TIM2_CH1[BEEP] -
+   04 VSSIO_1                 GND         | 61 PD4(HS)/TIM2_CH1[BEEP] BUZZER
    05 VSS                     GND         | 60 PD3(HS)/TIM2_CH2       -
    06 VCAP                    <VCAP>      | 59 PD2(HS)/TIM3_CH1       -
    07 VDD                     +5V         | 58 PD1(HS)/SWIM           SWIM
@@ -58,7 +58,9 @@
    31 PE7/AIN8                SW3         | 34 PC1(HS)/TIM1_CH1       SDIN_B
    32 PE6/AIN9                SW2         | 33 PE5/SPI_NSS            SW1
    --------------------------------------------------------------------------------
-   NOTE  : PORTF and PORTG pins do NOT have interrupt capability!
+   NOTE 1: PORTF and PORTG pins do NOT have interrupt capability!
+   NOTE 2: For 24 MHz, set ST-LINK->Option Bytes...->Flash_Wait_states to 1
+   NOTE 3: For BEEP function, set ST-LINK->Option Bytes...->AFR7 to Alternate Active
 =================================================================================== */
 #include <iostm8s207r8.h>
 #include <stdint.h>
@@ -96,7 +98,7 @@
 #define PCBSEL      (PCB2 | PCB1 | PCB0)
 #define ROWSEL      (RSEL3 | RSEL2 | RSEL1 | RSEL0)
 
-#define ROWENAb     (PC_ODR_ODR7)
+#define ROWENAb     (PB_ODR_ODR7)
 
 //-----------------------------
 // PORT C defines
@@ -119,6 +121,7 @@
 //-----------------------------
 // RX3 & TX3 are initialized by the UART module
 // SWIM is initialized by the JTAG module
+// BEEP: set ST-LINK->Option Bytes->AFR7 to Alternate Active
 
 //-----------------------------
 // PORT E defines
@@ -177,7 +180,8 @@
 
 // Function prototypes
 void     buzzer(void);
+void     set_buzzer(uint8_t freq, uint8_t nrbeeps);
 uint8_t  initialise_system_clock(uint8_t clk);
-void     setup_timers(uint8_t clk);
+void     setup_timers(uint8_t clk, uint8_t freq);
 void     setup_gpio_ports(void);
 #endif // _STM8_HW_INIT_H

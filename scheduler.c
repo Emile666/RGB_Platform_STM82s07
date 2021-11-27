@@ -36,7 +36,6 @@ void scheduler_init(void)
     memset(task_list,0x00,sizeof(task_list)); // clear task_list array
 } // scheduler_init()
 
-
 /*-----------------------------------------------------------------------------
   Purpose  : Run-time function for scheduler. Should be called from within
              an ISR. This function goes through the task-list and decrements
@@ -141,9 +140,12 @@ uint8_t add_task(void (*task_ptr)(), char *Name, uint16_t delay, uint16_t period
 /*-----------------------------------------------------------------------------
   Purpose  : Enable a task.
   Variables: Name: Name of task to enable
+             exclusive: DISABLE_OTHER_TASKS: enable only this task, 
+                                             other tasks are disabled. 
+                        THIS_TASK_ONLY: enable this task, other tasks are not changed.
   Returns  : error [NO_ERR, ERR_NAME, ERR_EMPTY]
   ---------------------------------------------------------------------------*/
-uint8_t enable_task(char *Name)
+uint8_t enable_task(char *Name, bool exclusive)
 {
     uint8_t index = 0;
     bool    found = false;
@@ -151,13 +153,17 @@ uint8_t enable_task(char *Name)
     //go through the active tasks
     if (task_list[index].Period != 0)
     {
-        while ((task_list[index].Period != 0) && !found)
+        while ((index < MAX_TASKS) && (task_list[index].Period != 0) && (!found || exclusive))
         {
             if (!strcmp(task_list[index].Name,Name))
-            {
+            {   // task is found
                 task_list[index].Status |= TASK_ENABLED;
                 found = true;
             } // if
+            else if (exclusive)
+            {   // other task, should be disabled
+                task_list[index].Status &= ~TASK_ENABLED;
+            } // else if
             index++;
         } // while
     } // if
@@ -178,9 +184,9 @@ uint8_t disable_task(char *Name)
     bool    found = false;
     
     //go through the active tasks
-    if(task_list[index].Period != 0)
+    if (task_list[index].Period != 0)
     {
-        while ((task_list[index].Period != 0) && !found)
+        while ((index < MAX_TASKS) && (task_list[index].Period != 0) && !found)
         {
             if (!strcmp(task_list[index].Name,Name))
             {
@@ -210,7 +216,7 @@ uint8_t set_task_time_period(uint16_t Period, char *Name)
     //go through the active tasks
     if(task_list[index].Period != 0)
     {
-        while ((task_list[index].Period != 0) && !found)
+        while ((index < MAX_TASKS) && (task_list[index].Period != 0) && !found)
         {
             if (!strcmp(task_list[index].Name,Name))
             {
