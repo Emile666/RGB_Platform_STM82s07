@@ -29,20 +29,15 @@ char *revision_nr = "0.30\n"; // RGB Platform SW revision number
 // Array which holds the Red, Green & Blue bits for every RGB-LED.
 // Bit 2: Red, Bit 1: Green, Bit 0: Blue, see defines in .h file
 //-------------------------------------------------------------------------
-playfield_color rgb_ledr = {0}; // The actual status of the red leds
-playfield_color rgb_ledg = {0}; // The actual status of the green leds
-playfield_color rgb_ledb = {0}; // The actual status of the blue leds
-playfield_color rgb_bufr; // Buffered version of the red leds
-playfield_color rgb_bufg; // Buffered version of the green leds
-playfield_color rgb_bufb; // Buffered version of the blue leds
-
-bool vsync = false;       // Vertical-Sync
+playfield_color rgb_bufr = {0}; // The actual status of the red leds
+playfield_color rgb_bufg = {0}; // The actual status of the green leds
+playfield_color rgb_bufb = {0}; // The actual status of the blue leds
 
 //-------------------------------------------------------------------------
 // Global variables for lichtkrant() function
 //-------------------------------------------------------------------------
-char    lk1[100] = "TEST"; // Text for top horizontal line
-uint8_t lk1c[100]= {RED};  // Colour for every character in lk1[]
+char    lk1[100];      // Text for top horizontal line
+uint8_t lk1c[100];     // Colour for every character in lk1[]
 char    lk2[100];      // Text for bottom horizontal line
 uint8_t lk2c[100];     // Colour for every character in lk2[]
 
@@ -66,12 +61,28 @@ Returns  : -
 -------------------------------------------------------------------------*/
 void lichtkrant(void)
 {
+    static bool lk2run = false;
+    
+    BG_LEDb = 1;               // Time-measurement
+    lichtkrant1();             // top row
+    if (lk2run) lichtkrant2(); // bottom row
+    lk2run = !lk2run;          // twice as slow as top row
+    BG_LEDb = 0;               // Stop time-measurement
+} // lichtkrant()
+
+/*-------------------------------------------------------------------------
+Purpose   : This is the top-level lichtkrant task. It uses the top row.
+            Text is displayed horizontally.
+            Variables: see list of global variables.
+Returns  : -
+-------------------------------------------------------------------------*/
+void lichtkrant1(void)
+{
     uint8_t maxch = MAX_CHAR_Y;
     uint8_t i, cy, col, chi, bit, slen;
     //char    s2[40]; // Used for printing date and time
     //int16_t temp;   // DS3231 temperature
     //Time    p;      // DS3231 date and time
-	BG_LEDb = 1;        // Time-measurement
 
 /* 	ds3231_gettime(&p); // get date and time from RTC
 	strcpy(lk1,dows[p.dow & 0x07]);
@@ -89,7 +100,8 @@ void lichtkrant(void)
 		 case 3: strcat(lk1,"75"); break;
 	} // switch
 	strcat(lk1,"    ");
- */    slen = strlen(lk1);
+ */    
+    slen = strlen(lk1);
     switch (row1_std)
     {
     case 1: //Init., place 4 characters
@@ -141,7 +153,19 @@ void lichtkrant(void)
         } // else
         break;
     } // switch (row1_std)
-    
+} // lichtkrant1() 
+
+/*-------------------------------------------------------------------------
+Purpose   : This is the bottom-level lichtkrant task. It uses the bottom row.
+            Text is displayed horizontally.
+            Variables: see list of global variables.
+Returns  : -
+-------------------------------------------------------------------------*/
+void lichtkrant2(void)
+{
+    uint8_t maxch = MAX_CHAR_Y;
+    uint8_t i, cy, col, chi, bit, slen;
+
     slen = strlen(lk2);
     switch (row2_std)
     {
@@ -198,8 +222,7 @@ void lichtkrant(void)
         } // else
         break;
     } // switch (row2_std)
-    BG_LEDb = 0; // Stop time-measurement
-} // lichtkrant() 
+} // lichtkrant2() 
 
 /*-------------------------------------------------------------------------
 Purpose   : This is a test task. It lights the red, green and blue leds once
@@ -274,26 +297,6 @@ uint8_t read_dip_switches(void)
     return dip_sw;
 } // read_dip_switches()
 
-/*-------------------------------------------------------------------------
-  Purpose   : This functions copies the buffer built by the program into
-              the rgb_led buffer, that is used to control the LEDs.
-              Since a LED is enabled when the bit is 0, all bits are
-              inverted when copied.
-  Variables : -
-  Returns   : -
-  -------------------------------------------------------------------------*/
-void copy_playfield(void)
-{
-    __disable_interrupt();
-    for (uint8_t i = 0; i < MAX_Y; i++)
-    {
-        rgb_ledr[i] = ~rgb_bufr[i];
-        rgb_ledg[i] = ~rgb_bufg[i];
-        rgb_ledb[i] = ~rgb_bufb[i];
-    } // for i
-    __enable_interrupt(); 
-} // copy_playfield() 
-
 /*------------------------------------------------------------------
   Purpose  : This is the main() function for the RGB platform.
   Variables: -
@@ -320,7 +323,7 @@ int main(void)
     {
         case 1 : add_task(tetrisMain    , "tetris", 150, 500); break; // Tetris game
         case 15: add_task(test_playfield, "test"  , 175,2000); break; // Test
-       default : add_task(lichtkrant    , "lkrant", 100, 100); break; // Lichtkrant task
+       default : add_task(lichtkrant    , "lkrant", 100,  50); break; // Lichtkrant task
     } // switch
     __enable_interrupt(); // set global interrupt enable, start task-scheduler
 	
@@ -333,6 +336,12 @@ int main(void)
     sprintf(s,"DIP-SW: 0x%X\n",dip_sw);
     uart1_printf(s); // print status of dip-switches
     set_buzzer(FREQ_4KHZ,1);
+    strcpy(lk1,"Test voor lichtkrant ");
+    for (uint8_t i = 0; i < strlen(lk1); i++) lk1c[i] = RED;
+    lk1c[5] = GREEN; lk1c[10] = YELLOW; lk1c[15] = CYAN; lk1c[19] = WHITE;
+    lk1c[2] = lk1c[3] = MAGENTA;
+    strcpy(lk2,"Het is nu vrijdag 3 december 2021 ");
+    for (uint8_t i = 0; i < strlen(lk2); i++) lk2c[i] = BLUE;
     
     while (true)
     {   // main loop
@@ -347,10 +356,5 @@ int main(void)
             case ERR_I2C: break; // do not print anything 
             default     : break;
         } // switch
-        if (vsync)
-        {
-            copy_playfield();
-            vsync = false; // reset vertical sync
-    	} // if
     } // while()
 } // main()

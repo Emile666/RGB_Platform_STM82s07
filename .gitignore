@@ -39,6 +39,7 @@ settings/*.ps1
 *.ewd
 Debug/List/*.lst
 Debug/List/*.s
+*.db
 
 # =========================
 # Operating System Files

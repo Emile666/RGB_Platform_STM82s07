@@ -85,9 +85,9 @@ void dispatch_tasks(void)
         if((task_list[index].Status & (TASK_READY | TASK_ENABLED)) == (TASK_READY | TASK_ENABLED))
         {
             time1 = millis(); // Read msec. timer
+            task_list[index].Counter  = task_list[index].Period; // reset counter
             task_list[index].pFunction(); // run the task
             task_list[index].Status  &= ~TASK_READY; // reset the task when finished
-            task_list[index].Counter  = task_list[index].Period; // reset counter
             time2 = millis(); // read msec. timer
             if (time2 < time1) time2 += UINT32_MAX - time1; // overflows every 49.7 days, unlikely
             else               time2 -= time1; 
@@ -204,8 +204,8 @@ uint8_t disable_task(char *Name)
 
 /*-----------------------------------------------------------------------------
   Purpose  : Set the time-period (msec.) of a task.
-  Variables: msec: the time in milliseconds
-             name: the name of the task to set the time for
+  Variables: Period: the time in milliseconds
+             Name  : the name of the task to set the time for
   Returns  : error [NO_ERR, ERR_NAME, ERR_EMPTY]
   ---------------------------------------------------------------------------*/
 uint8_t set_task_time_period(uint16_t Period, char *Name)

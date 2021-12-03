@@ -23,10 +23,9 @@
 #include "pixel.h"
 
 extern uint32_t t2_millis;       // needed for delay_msec()
-extern playfield_color rgb_ledr; // The actual status of the red leds
-extern playfield_color rgb_ledg; // The actual status of the green leds
-extern playfield_color rgb_ledb; // The actual status of the blue leds
-extern bool vsync;               // Vertical-Sync
+extern playfield_color rgb_bufr; // The actual status of the red leds
+extern playfield_color rgb_bufg; // The actual status of the green leds
+extern playfield_color rgb_bufb; // The actual status of the blue leds
 
 uint8_t current_row = 0;         // Index which row in the hardware is enabled
 
@@ -127,9 +126,10 @@ __interrupt void TIM2_UPD_OVF_IRQHandler(void)
     uint16_t colmask = 0x0001; // start with bit 0 to send to shift-register
     for (uint8_t i = 0; i < SIZE_X; i++)
     {   // shift color bits to hardware shift-registers
-        SDIN_Rb   = (rgb_ledr[current_row] & colmask) ? 1 : 0;
-        SDIN_Gb   = (rgb_ledg[current_row] & colmask) ? 1 : 0;
-        SDIN_Bb   = (rgb_ledb[current_row] & colmask) ? 1 : 0;
+        // A LED in hardware is enabled when the bit is 0, bits are inverted here.
+        SDIN_Rb   = (rgb_bufr[current_row] & colmask) ? 0 : 1;
+        SDIN_Gb   = (rgb_bufg[current_row] & colmask) ? 0 : 1;
+        SDIN_Bb   = (rgb_bufb[current_row] & colmask) ? 0 : 1;
         SHCPb     = 1; // set clock for shift-register;
         colmask <<= 1; // select next bit
         SHCPb     = 0; // set clock to 0 again
@@ -144,7 +144,6 @@ __interrupt void TIM2_UPD_OVF_IRQHandler(void)
     if (++current_row >= MAX_Y)
     {   // cycle through rows, enable one at a time
         current_row = 0;
-        vsync       = true; // set Vsync flag
     } // if
     IRQ_LEDb     = 0; // Stop Time-measurement
     TIM2_SR1_UIF = 0; // Reset the interrupt otherwise it will fire again straight away.
