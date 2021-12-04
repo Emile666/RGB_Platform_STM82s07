@@ -20,6 +20,7 @@
 #include "rgb_platform_stm8s207.h"
 #include "pixel.h"
 #include "tetris.h"
+#include "eep.h"
 
 extern uint8_t atascii[128][8]; // Atari XL Font
 extern char rs232_inbuf[];
@@ -336,12 +337,10 @@ int main(void)
     sprintf(s,"DIP-SW: 0x%X\n",dip_sw);
     uart1_printf(s); // print status of dip-switches
     set_buzzer(FREQ_4KHZ,1);
-    strcpy(lk1,"Test voor lichtkrant ");
-    for (uint8_t i = 0; i < strlen(lk1); i++) lk1c[i] = RED;
-    lk1c[5] = GREEN; lk1c[10] = YELLOW; lk1c[15] = CYAN; lk1c[19] = WHITE;
-    lk1c[2] = lk1c[3] = MAGENTA;
-    strcpy(lk2,"Het is nu vrijdag 3 december 2021 ");
-    for (uint8_t i = 0; i < strlen(lk2); i++) lk2c[i] = BLUE;
+    eep_read_string(EEP_TEXT1,lk1);         // read top-row of lichtkrant
+    eep_read_string(EEP_COL1,(char*)lk1c);  // read colors of top-row
+    eep_read_string(EEP_TEXT2,lk2);         // read bottom-row of lichtkrant
+    eep_read_string(EEP_COL2,(char *)lk2c); // read colors of bottom-row
     
     while (true)
     {   // main loop

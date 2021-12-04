@@ -38,6 +38,9 @@ struct ring_buffer ring_buffer_in3;
 uint8_t            out3_buffer[TX_BUF_SIZE];
 uint8_t            in3_buffer[RX_BUF_SIZE];
 
+uint8_t ch;       // debug
+uint8_t uart1_sr; // debug
+
 //-----------------------------------------------------------------------------
 // UART Transmit complete Interrupt.
 //
@@ -72,17 +75,16 @@ __interrupt void UART1_TX_IRQHandler()
 #pragma vector=UART1_R_RXNE_vector
 __interrupt void UART1_RX_IRQHandler(void)
 {
-	volatile uint8_t ch;
-	
 	if (!ring_buffer_is_full(&ring_buffer_in1))
 	{
-		ring_buffer_put(&ring_buffer_in1, UART1_DR);
-		ovf_buf_in1 = false;
+	    ring_buffer_put(&ring_buffer_in1, UART1_DR);
+	    ovf_buf_in1 = false;
 	} // if
 	else
 	{
-		ch = UART1_DR; // clear RXNE flag
-		ovf_buf_in1 = true;
+            uart1_sr    = UART1_SR; // Clear IDLE and Overrun errors
+            ch          = UART1_DR;
+	    ovf_buf_in1 = true;
 	} // else
 	isr1_cnt++;
 } /* UART1_RX_IRQHandler() */
@@ -137,8 +139,8 @@ __interrupt void UART3_RX_IRQHandler(void)
 } /* UART3_RX_IRQHandler() */
 
 /*------------------------------------------------------------------
-  Purpose  : This function initializes UART 1 to 115200,N,8,1
-             Master clock is 24 MHz, baud-rate is 115200 Baud.
+  Purpose  : This function initializes UART 1 to 38400,N,8,1
+             Master clock is 24 MHz, baud-rate is 38400 Baud.
   Variables: clk: which clock is active: HSI (0xE1), HSE (0xB4) or LSI (0xD2)
   Returns  : -
   ------------------------------------------------------------------*/
@@ -168,13 +170,17 @@ void uart1_init(uint8_t clk)
     //   8 MHz:  69 = 0x0045, BRR1=0x04, BRR2=0x05, err=+0.64%
     //  16 MHz: 139 = 0x008B, BRR1=0x08, BRR2=0x0B, err=-0.08%
     //  24 MHz: 208 = 0x00D0, BRR1=0x0D, BRR2=0x00, err=+0.16%
+    // 24 MHz: 1250 = 0x04E2, BRR1=0x4E, BRR2=0x02 for 19200 Baud
+    // 24 MHz:  625 = 0x0271, BRR1=0x27, BRR2=0x01 for 38400 Baud
     UART1_CR1_M    = 0;     //  8 Data bits.
     UART1_CR1_PCEN = 0;     //  Disable parity.
     UART1_CR3_STOP = 0;     //  1 stop bit.
     if (clk == HSE)
     {   // external HSE oscillator
-        UART1_BRR2     = 0x00;  //  Set the baud rate registers to 115200 baud
-        UART1_BRR1     = 0x0D;  //  based upon a 24 MHz system clock.
+        //UART1_BRR2     = 0x00;  //  Set the baud rate registers to 115200 baud
+        //UART1_BRR1     = 0x0D;  //  based upon a 24 MHz system clock.
+        UART1_BRR2     = 0x01;  //  Set the baud rate registers to 38400 baud
+        UART1_BRR1     = 0x27;  //  based upon a 24 MHz system clock.
     } // if
     else
     {   // internal HSI oscillator
@@ -192,6 +198,7 @@ void uart1_init(uint8_t clk)
     UART1_CR3_LBCL = 0;
 
     //  Turn on the UART transmit, receive and the UART clock.
+    UART1_CR2_ILIEN = 0;     //  IDLE Line interrupt enable
     UART1_CR2_TIEN = 1; // Enable Transmit interrupt
     UART1_CR2_RIEN = 1; // Enable Receive interrupt
     UART1_CR2_TEN  = 1; // Enable Transmitter

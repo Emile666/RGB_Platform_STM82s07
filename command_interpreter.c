@@ -22,12 +22,19 @@
 #include "rgb_platform_stm8s207.h"
 #include "uart.h"
 #include "scheduler.h"
-      
+#include "eep.h"
+#include "pixel.h"
+
 extern  task_struct task_list[];      // struct with all tasks
 extern  uint8_t     max_tasks;
 
 char    rs232_inbuf[UART_BUFLEN];     // buffer for RS232 commands
 uint8_t rs232_ptr = 0;                // index in RS232 buffer
+
+extern  char    lk1[];      // Text for top horizontal line
+extern  uint8_t lk1c[];     // Colour for every character in lk1[]
+extern  char    lk2[];      // Text for bottom horizontal line
+extern  uint8_t lk2c[];     // Colour for every character in lk2[]
 
 /*-----------------------------------------------------------------------------
   Purpose  : Scan all devices on the I2C bus on all channels of the PCA9544
@@ -71,8 +78,8 @@ uint8_t rs232_command_handler(void)
   static uint8_t cmd_rcvd = 0;
   
   if (!cmd_rcvd && uart1_kbhit())
-  { // A new character has been received
-    ch = tolower(uart1_getc()); // get character as lowercase
+  {     // A new character has been received
+        ch = uart1_getc(); // get character
 	switch (ch)
 	{
             case '\r': break;
@@ -82,7 +89,12 @@ uint8_t rs232_command_handler(void)
                        break;
             default  : if (rs232_ptr < UART_BUFLEN-1)
 			    rs232_inbuf[rs232_ptr++] = ch;
-		       else rs232_ptr = 0; // remove inputs	
+		       else 
+                       {   // buffer is full
+                           cmd_rcvd = 1;
+                           rs232_inbuf[UART_BUFLEN-1] = '\0';
+                           rs232_ptr = 0; // remove input
+                       } // else
                        break;
 	} // switch
   } // if
@@ -120,6 +132,38 @@ void list_all_tasks(void)
 } // list_all_tasks()
 
 /*-----------------------------------------------------------------------------
+  Purpose: This function colors the text-input for display as a lichtkrant.
+           The first letter of a word gets another color, every word also
+           gets another color.
+  Variables: 
+      s   : the string that contains the text to color
+      scol: the string contaings the colors
+  Returns : -
+  ---------------------------------------------------------------------------*/
+void color_text_input(char *s, uint8_t *scol)
+{
+    uint8_t col = BLUE;
+    uint8_t cap = true;
+    
+    for (uint8_t i = 0; i < strlen(s); i++)
+    {
+        if (cap == true)
+        {
+            cap = false;
+            if (col != WHITE) 
+                 scol[i] = ~col & 0x07; // invert color of first letter
+            else scol[i] = BLUE;
+        } // if
+        else scol[i] = col;
+        if (s[i] == ' ')
+        {
+            col++;
+            if (col > WHITE) col = BLUE;
+            cap = true;
+        } // if
+    } // for i   
+} // color_text_input()
+/*-----------------------------------------------------------------------------
   Purpose: interpret commands which are received via the USB serial terminal:
    - S0           : Ebrew hardware revision number (also disables delayed-start)
      S2           : List all connected I2C devices  
@@ -135,7 +179,10 @@ uint8_t execute_single_command(char *s)
    uint8_t  rval = NO_ERR;
    char     s2[40]; // Used for printing to RS232 port
    
-   switch (s[0])
+   uart1_printf("s[]:");
+   uart1_printf(s);
+   uart1_printf("\n");
+   switch (tolower(s[0]))
    {
 	   case 's': // System commands
                rval = 67 + num;
@@ -150,6 +197,27 @@ uint8_t execute_single_command(char *s)
                    case 3: // List all tasks
                        list_all_tasks(); 
                        break;	
+                   default: rval = ERR_NUM;
+                   break;
+               } // switch
+               break;
+               
+	   case 't': // Text input for lichtkrant
+               rval = 67 + num;
+               switch (num)
+               {
+                   case 0: // Text for top-level row
+                       strcpy(lk1,&s[3]);
+                       eep_write_string(EEP_TEXT1,lk1);
+                       color_text_input(lk1,lk1c);
+                       eep_write_string(EEP_COL1,(char *)lk1c);
+                       break;
+                   case 1: // Text for bottom-level row
+                       strcpy(lk2,&s[3]);
+                       eep_write_string(EEP_TEXT2,lk2);
+                       color_text_input(lk2,lk2c);
+                       eep_write_string(EEP_COL2,(char *)lk2c);
+                       break;
                    default: rval = ERR_NUM;
                    break;
                } // switch

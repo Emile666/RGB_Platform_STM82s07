@@ -1,10 +1,10 @@
-#ifndef _STM8_UART_H
-#define _STM8_UART_H
+#ifndef _STM8_EEP_H
+#define _STM8_EEP_H
 /*==================================================================
-  File Name: uart.h
+  File Name: eep.h
   Author   : Emile
   ------------------------------------------------------------------
-  Purpose  : This is the header-file for uart.c
+  Purpose  : This is the header-file for eep.c
   ------------------------------------------------------------------
   This file is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -21,21 +21,24 @@
   ================================================================== */ 
 #include "stm8_hw_init.h"
 
-#define UART_BUFLEN (80) /* Size for rs232_inbuf[] */
-#define TX_BUF_SIZE (30) /* Transmit ring-buffer size */
-#define RX_BUF_SIZE (30) /* Receive ring-buffer size */
+// EEPROM base address within STM8 uC
+#define EEP_BASE_ADDR (0x4000)
 
-// UART1: Used for general communication
-void    uart1_init(uint8_t clk);
-void    uart1_printf(char *s);
-bool    uart1_kbhit(void);
-uint8_t uart1_getc(void);
-void    uart1_putc(uint8_t ch);
+#define EEP_TEXT1          (0x0000) /* Text-string top-row */
+#define EEP_TEXT2          (0x0080) /* Text-string bottom-row */
+#define EEP_COL1           (0x0100) /* Colors for text-string top-row */
+#define EEP_COL2           (0x0180) /* Colors for text-string bottom-row */
 
-// UART3: Used for ESP8266 communication
-void    uart3_init(uint8_t clk);
-void    uart3_putc(uint8_t ch);
-bool    uart3_kbhit(void);
-uint8_t uart3_getc(void);
-void    uart3_putc(uint8_t ch);
+#define NO_INIT            (0xFF)
+#define USE_ETH            (0x00)
+#define USE_USB            (0xFF)
+
+// Function prototypes
+uint8_t  eep_read8(uint8_t eep_address);
+uint16_t eep_read16(uint8_t eep_address);
+void     eep_write8(uint8_t eep_address, uint8_t data);
+void     eep_write16(uint8_t eep_address, uint16_t data);
+void     eep_write_string(uint16_t eep_address,char *s);
+void     eep_read_string(uint16_t eep_address,char *s);
+
 #endif
