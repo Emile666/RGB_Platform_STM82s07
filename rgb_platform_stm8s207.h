@@ -18,6 +18,13 @@
  
   You should have received a copy of the GNU General Public License
   along with this software.  If not, see <http://www.gnu.org/licenses/>.
+
+  |---------|      |---------|---------|bit 15
+  |         |      |         |         |
+  | PCB Y7  | .... | PCB Y1  | PCB Y0  |
+  |         |      |         |   uC    |
+  ----------|      |---------|---------|bit 0
+  127      112    31       16 15      0 <- ROWS 
   ================================================================== */ 
 #include "stm8_hw_init.h"
 #include <string.h>

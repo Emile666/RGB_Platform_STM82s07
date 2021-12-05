@@ -30,6 +30,9 @@
 #define LK1   (0x01)
 #define LK2   (0x02)
 
+#define SCREEN (0) /* Main screen for RGB-matrices */
+#define FIELD  (1) /* Tetris playfield */
+      
 // List of colours used
 #define EMPTY   (0x00)
 #define BLACK   (EMPTY)
@@ -43,11 +46,10 @@
 
 typedef uint16_t  playfield_color[MAX_Y]; // Typedef for 1 playfield color
 
-void    clearScreen(void);
-void    setPixel(int8_t x, int8_t y, uint8_t col);
-uint8_t getPixel(int8_t x, int8_t y);
-void    printChar(int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv);
-void    drawLine(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col);
-void    fillRect(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col);
+void    clearScreen(bool screen);
+void    setPixel(bool screen, int8_t x, int8_t y, uint8_t col);
+uint8_t getPixel(bool screen, int8_t x, int8_t y);
+void    printChar(bool screen, int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv);
+void    drawLine(bool screen, int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col);
 
 #endif

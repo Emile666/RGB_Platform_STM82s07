@@ -28,7 +28,10 @@ char *revision_nr = "0.30\n"; // RGB Platform SW revision number
 
 //-------------------------------------------------------------------------
 // Array which holds the Red, Green & Blue bits for every RGB-LED.
-// Bit 2: Red, Bit 1: Green, Bit 0: Blue, see defines in .h file
+// Rows range from 0 (bottom-row) to MAX_Y
+// Bit 0 is the 
+// rgb_buf[0] is row 0 (bottom-row), rows range from 0..MAX_Y
+// Bit 2: Red, Bit 1: Green, Bit 0: Blue, see defines in pixel.h file
 //-------------------------------------------------------------------------
 playfield_color rgb_bufr = {0}; // The actual status of the red leds
 playfield_color rgb_bufg = {0}; // The actual status of the green leds
@@ -108,7 +111,7 @@ void lichtkrant1(void)
     case 1: //Init., place 4 characters
         for (i = 0; i < maxch; i++)
         {   //        x   y    ch            col        orientation
-            printChar(8,i<<3,lk1[maxch-1-i],lk1c[maxch-1-i],HOR);
+            printChar(SCREEN,8,i<<3,lk1[maxch-1-i],lk1c[maxch-1-i],HOR);
         }
         if (slen > maxch)
         {
@@ -140,8 +143,8 @@ void lichtkrant1(void)
             for (bit = 0; bit < 8; bit++)
             {
                 if (atascii[chi][7-bit] & (1<<(row1_bit)))
-                     setPixel(8+bit,0,col);
-                else setPixel(8+bit,0,BLACK);
+                     setPixel(SCREEN,8+bit,0,col);
+                else setPixel(SCREEN,8+bit,0,BLACK);
             } // for
             if (--row1_bit < 0)
             {
@@ -173,7 +176,7 @@ void lichtkrant2(void)
     case 1: //Init., place 4 characters
         for (i = 0; i < maxch; i++)
         {
-            printChar(0,i<<3,lk2[maxch-1-i],lk2c[maxch-1-i],HOR);
+            printChar(SCREEN,0,i<<3,lk2[maxch-1-i],lk2c[maxch-1-i],HOR);
         }
         if (slen > maxch)
         {
@@ -205,8 +208,8 @@ void lichtkrant2(void)
             for (bit = 0; bit < 8; bit++)
             {
                 if (atascii[chi][7-bit] & (1<<(row2_bit)))
-                     setPixel(bit,0,col);
-                else setPixel(bit,0,BLACK);
+                     setPixel(SCREEN,bit,0,col);
+                else setPixel(SCREEN,bit,0,BLACK);
             } // for
             if (--row2_bit < 0)
             {
@@ -322,7 +325,7 @@ int main(void)
     scheduler_init(); // init. task-scheduler
     switch (dip_sw)
     {
-        case 1 : add_task(tetrisMain    , "tetris", 150, 500); break; // Tetris game
+        case 1 : add_task(tetrisMain    , "tetris", 150,  50); break; // Tetris game
         case 15: add_task(test_playfield, "test"  , 175,2000); break; // Test
        default : add_task(lichtkrant    , "lkrant", 100,  50); break; // Lichtkrant task
     } // switch

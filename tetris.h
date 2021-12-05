@@ -21,21 +21,26 @@
   ================================================================== */ 
 #include "random.h"
 #include "stm8_hw_init.h"
-#include "pixel.h"
+
+//---------------------------------------------------------------------------
+// TETRIS_WALL_X: The x-position of the Tetris wall
+// TETRIS_MASK_X: bits are set to 1 if it belong to the Tetris playfield
+// TETRIS_MAX_X : Size of playfield in x-direction (columns)
+// TETRIS_MAX_Y : Size of playfield in y-direction (rows)
+//---------------------------------------------------------------------------
+#define TETRIS_WALL_X (SIZE_X-4)        /* x-coordinate of wall, runs from y = 0..TETRIS_MAX_Y */
+#define TETRIS_MASK_X (0x0FFF)          /* should contain bits up to TETRIS_WALL_X */
+#define TETRIS_MAX_X  (TETRIS_WALL_X)   /* Default x-size of Tetris playfield */
+#define TETRIS_MAX_Y  (20)              /* Default y-size of Tetris playfield */
 
 //---------------------------------------------------------------------------
 // MAX_LEVEL    : Max. level of a game. Warning! the higher the maximum level,
 //                the slower shapes will fall at level 1
 // LEVEL_GAIN   : Points needed to increase the level
-// SIZE_X       : Size of playfield in x-direction
-// SIZE_Y       : Size of playfield in y-direction
-// MAX_CHAR_Y   : Nr. of possible characters horizontally
-// TETRIS_WALL_X: The x-position of the Tetris wall
 //---------------------------------------------------------------------------
 #define MAX_LEVEL     (18)
 #define LEVEL_GAIN    (1000)
-#define TETRIS_WALL_X (SIZE_X-4)
-
+      
 #define NEW_SHAPE   (0) /* Bit0 - generate new shape */
 #define FAST_DROP   (1)	/* Bit1 - fast shape drop */
 #define PLACE_SHAPE (2) /* Bit2 - place shape */
@@ -95,21 +100,23 @@
 #define TYPE_Z  (6)
 
 // List of colour for every block used in the game
-#define COLOUR_TYPE_I  (RED)
-#define COLOUR_TYPE_J  (YELLOW)
-#define COLOUR_TYPE_L  (MAGENTA)
-#define COLOUR_TYPE_O  (BLUE)
-#define COLOUR_TYPE_S  (CYAN)
-#define COLOUR_TYPE_T  (GREEN)
+#define COLOUR_TYPE_I  (CYAN)
+#define COLOUR_TYPE_J  (BLUE)
+#define COLOUR_TYPE_L  (WHITE)
+#define COLOUR_TYPE_O  (YELLOW)
+#define COLOUR_TYPE_S  (GREEN)
+#define COLOUR_TYPE_T  (MAGENTA)
 #define COLOUR_TYPE_Z  (RED)
 
-void      tetrisInputs(void);
-void      CheckX(int8_t *x, int8_t shape, int8_t rotation);
-void      downOneRow(int8_t src_x , int8_t src_y, uint8_t width, uint8_t height, int8_t dest_x, int8_t dest_y);
-bool      canMoveRight(int8_t x, int8_t y, uint8_t shape, uint8_t rotation);
-bool      canMoveLeft(int8_t x, int8_t y, uint8_t shape, uint8_t rotation);
-bool      shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation);
-void      drawShape(int8_t x, int8_t y, uint8_t shape, uint8_t rotation);
-void      tetrisMain(void);
+void    tetrisInputs(void);
+void    CheckX(int8_t *x, int8_t shape, int8_t rotation);
+bool    canMoveRight(int8_t x, int8_t y, uint8_t shape, uint8_t rotation);
+bool    canMoveLeft(int8_t x, int8_t y, uint8_t shape, uint8_t rotation);
+bool    shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation);
+void    drawShape(bool screen, int8_t x, int8_t y, uint8_t shape, uint8_t rotation);
+void    copyFieldToScreen(void);
+void    copyScreenToField(void);
+void    downOneRowInField(int8_t src_y);
+void    tetrisMain(void);
 
 #endif /* TETRIS_H_ */

@@ -19,82 +19,133 @@
   ================================================================== */ 
 #include <stdlib.h>
 #include "pixel.h"
-      
+#include "tetris.h"
+
 extern playfield_color rgb_bufr; // Buffered version of the red leds
 extern playfield_color rgb_bufg; // Buffered version of the green leds
 extern playfield_color rgb_bufb; // Buffered version of the blue leds
+extern uint16_t        fieldr[]; // Tetris playfield red leds
+extern uint16_t        fieldg[]; // Tetris playfield green leds
+extern uint16_t        fieldb[]; // Tetris playfield blue leds
 extern uint8_t  atascii[128][8]; // Atari XL Font
 
 /*-------------------------------------------------------------------------
- Purpose   : This function clears the entire screen of the RGB Matrix
-  Variables: -
+ Purpose   : This function clears an entire screen.
+  Variables: screen: [FIELD,SCREEN], Tetris playfield or main-screen
   Returns  : -
   -------------------------------------------------------------------------*/
-void clearScreen(void)
+void clearScreen(bool screen)
 {
-    for (uint8_t i = 0; i < MAX_Y; i++)
-    {
-        rgb_bufr[i] = rgb_bufg[i] = rgb_bufb[i] = BLACK;
-    } // for i
+    if (screen == FIELD)
+    {   // Tetris playfield
+        for (uint8_t i = 0; i < TETRIS_MAX_Y; i++)
+        {
+            fieldr[i] = fieldg[i] = fieldb[i] = BLACK;
+        } // for i
+    } // if
+    else
+    {   // Main Screen
+        for (uint8_t i = 0; i < MAX_Y; i++)
+        {
+            rgb_bufr[i] = rgb_bufg[i] = rgb_bufb[i] = BLACK;
+        } // for i
+    } // if
 } // clearScreen()
 
 /*-------------------------------------------------------------------------
- Purpose   : This function sets the color of a pixel in the playfield
-  Variables: x  : the x position of the pixel in the playfield
+ Purpose   : This function sets the color of a pixel in a screen.
+  Variables: screen: [FIELD,SCREEN], Tetris playfield or main-screen
+             x  : the x position of the pixel in the playfield
   	     y  : the y position of the pixel in the playfield
   	     col: the color code for the pixel
   Returns  : -
   -------------------------------------------------------------------------*/
-void setPixel(int8_t x, int8_t y, uint8_t col)
+void setPixel(bool screen, int8_t x, int8_t y, uint8_t col)
 {
-    if ((x >= 0) && (y >= 0) && (x < SIZE_X) && (y < MAX_Y))
-    {
-        uint16_t bt = (1<<x);
-        if ((col & RED)   ==  RED)   
-             rgb_bufr[y]  |=  bt;
-        else rgb_bufr[y]  &= ~bt;
-        if ((col & GREEN) ==  GREEN)   
-             rgb_bufg[y]  |=  bt;
-        else rgb_bufg[y]  &= ~bt;
-        if ((col & BLUE)  ==  BLUE)   
-             rgb_bufb[y]  |=  bt;
-        else rgb_bufb[y]  &= ~bt;
+    if (screen == FIELD)
+    {   // Tetris playfield
+        if ((x >= 0) && (y >= 0) && (x < TETRIS_MAX_X) && (y < TETRIS_MAX_Y))
+        {
+            uint16_t bt = (1<<x);
+            if ((col & RED)   ==  RED)   
+                 fieldr[y]  |=  bt;
+            else fieldr[y]  &= ~bt;
+            if ((col & GREEN) ==  GREEN)   
+                 fieldg[y]  |=  bt;
+            else fieldg[y]  &= ~bt;
+            if ((col & BLUE)  ==  BLUE)   
+                 fieldb[y]  |=  bt;
+            else fieldb[y]  &= ~bt;
+        } // if
     } // if
+    else
+    {   // main Screen
+        if ((x >= 0) && (y >= 0) && (x < SIZE_X) && (y < MAX_Y))
+        {
+            uint16_t bt = (1<<x);
+            if ((col & RED)   ==  RED)   
+                 rgb_bufr[y]  |=  bt;
+            else rgb_bufr[y]  &= ~bt;
+            if ((col & GREEN) ==  GREEN)   
+                 rgb_bufg[y]  |=  bt;
+            else rgb_bufg[y]  &= ~bt;
+            if ((col & BLUE)  ==  BLUE)   
+                 rgb_bufb[y]  |=  bt;
+            else rgb_bufb[y]  &= ~bt;
+        } // if        
+    } // else
 } // setPixel()
 
 /*-------------------------------------------------------------------------
- Purpose   : This function returns the color of a pixel in the playfield
-  Variables: x  : the x position of the pixel in the playfield
+ Purpose   : This function returns the color of a pixel in a screen.
+  Variables: screen: [FIELD,SCREEN], Tetris playfield or main-screen
+             x  : the x position of the pixel in the playfield
   	     y  : the y position of the pixel in the playfield
   Returns  : the color code for the pixel
   -------------------------------------------------------------------------*/
-uint8_t getPixel(int8_t x, int8_t y)
+uint8_t getPixel(bool screen, int8_t x, int8_t y)
 {
-    uint8_t col = BLACK;
+    uint8_t  col = BLACK;
+    uint16_t bt;
     
-    if ((x >= 0) && (y >= 0) && (x < SIZE_X) && (y < MAX_Y))
-    {
-        uint16_t bt = (1<<x);
-        if ((rgb_bufr[y] & bt) == bt) col |= RED;
-        if ((rgb_bufg[y] & bt) == bt) col |= GREEN;
-        if ((rgb_bufb[y] & bt) == bt) col |= BLUE;
+    if (screen == FIELD)
+    {   // Tetris playfield
+        if ((x >= 0) && (y >= 0) && (x < TETRIS_MAX_X) && (y < TETRIS_MAX_Y))
+        {
+            bt = (1<<x);
+            if ((fieldr[y] & bt) == bt) col |= RED;
+            if ((fieldg[y] & bt) == bt) col |= GREEN;
+            if ((fieldb[y] & bt) == bt) col |= BLUE;
+        } // if
+        else col = WHITE; // color for a wall
     } // if
+    else
+    {   // main Screen
+        if ((x >= 0) && (y >= 0) && (x < SIZE_X) && (y < MAX_Y))
+        {
+            bt = (1<<x);
+            if ((rgb_bufr[y] & bt) == bt) col |= RED;
+            if ((rgb_bufg[y] & bt) == bt) col |= GREEN;
+            if ((rgb_bufb[y] & bt) == bt) col |= BLUE;
+        } // if
+        else col = WHITE; // color for a wall
+    } // else
     return col;
 } // getPixel()
 
 /*-------------------------------------------------------------------------
- Purpose   : This function draws a character with the specified colour. The
- 	 	 	 The (x,y) coordinate is that of the lower-left pixel in vertical
- 	 	 	 orientation, or the lower-right pixel in horizontal orientation.
-  Variables: p        : a pointer to the 2D playfield
-  	  	  	 x        : the x position where the char is printed [0..SIZE_X-1]
-  	  	  	 y        : the y position where the char is printed [0..SIZE_Y-1]
-  	  	  	 ch       : the character to display on the playfield
-  	  	  	 colour   : the specified colour for the Tetris block
-  	  	  	 hv       : Horizontal (HOR) or Vertical (VERT) orientation
-  Returns  : 1 = block can move ; 0 = block can NOT move
+ Purpose   : This function draws a character with the specified colour on a
+             screen. The (x,y) coordinate is that of the lower-left pixel in vertical
+ 	     orientation, or the lower-right pixel in horizontal orientation.
+  Variables: screen : [FIELD,SCREEN], Tetris playfield or main-screen
+             x      : the x position where the char is printed [0..SIZE_X-1]
+             y      : the y position where the char is printed [0..SIZE_Y-1]
+             ch     : the character to display on the playfield
+             colour : the specified colour for the Tetris block
+             hv     : Horizontal (HOR) or Vertical (VERT) orientation
+             Returns: -
   -------------------------------------------------------------------------*/
-void printChar(int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv)
+void printChar(bool screen, int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv)
 {
     short int byte, data, bit, chi;
     
@@ -110,30 +161,31 @@ void printChar(int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv)
                 if (hv == VERT)
                 {   // Vertical
                     if (data & (1<<(7-bit)))
-                         setPixel(x+bit,y+byte,col);
-                    else setPixel(x+bit,y+byte,BLACK);
+                         setPixel(screen,x+bit,y+byte,col);
+                    else setPixel(screen,x+bit,y+byte,BLACK);
                 } // if
                 else
                 {   // Horizontal
                     if (data & (1<<(7-bit)))
-                         setPixel(x+byte,y+7-bit,col);
-                    else setPixel(x+byte,y+7-bit,BLACK);
+                         setPixel(screen,x+byte,y+7-bit,col);
+                    else setPixel(screen,x+byte,y+7-bit,BLACK);
                 } // else
             } // for
         } // for
     } // if
-} // printChar
+} // printChar()
 
 /*-------------------------------------------------------------------------
- Purpose   : This function draws a line in a playfield
-  Variables: x0: the x coordinate of the pixel to draw a line from
-  	     y0: the y coordinate of the pixel to draw a line from
-  	     x1: the x coordinate of the pixel to draw a line to
-  	     y1: the y coordinate of the pixel to draw a line to
-  	    col: the colour of the line to draw
+ Purpose   : This function draws a line on a screen
+  Variables: screen: [FIELD,SCREEN], Tetris playfield or main-screen
+             x0    : the x coordinate of the pixel to draw a line from
+  	     y0    : the y coordinate of the pixel to draw a line from
+  	     x1    : the x coordinate of the pixel to draw a line to
+  	     y1    : the y coordinate of the pixel to draw a line to
+  	    col    : the colour of the line to draw
   Returns  : -
   -------------------------------------------------------------------------*/
-void drawLine(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col)
+void drawLine(bool screen, int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col)
 {
     uint8_t steep = (abs(y1 - y0) > abs(x1 - x0));
     int8_t tx0 = x0;
@@ -164,8 +216,8 @@ void drawLine(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col)
     else ystep = -1;
     for (x = tx0; x <= tx1; x++)
     {
-        if (steep) setPixel(y, x, col);
-        else 	   setPixel(x, y, col);
+        if (steep) setPixel(screen, y, x, col);
+        else 	   setPixel(screen, x, y, col);
         error -= deltay;
         if (error < 0)
         {
@@ -174,21 +226,3 @@ void drawLine(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col)
         } // if
     } // for
 } // drawLine()
-
-/*-------------------------------------------------------------------------
- Purpose   : This function fills a rectangle in a playfield
-  Variables: x0 : the x coordinate of the lower left pixel
-  	     y0 : the y coordinate of the lower left pixel
-  	     x1 : the x coordinate of the upper right pixel
-  	     y1 : the y coordinate of the upper right pixel
-  	     col: the colour of the rectangle to fill
-  Returns  : -
-  -------------------------------------------------------------------------*/
-void fillRect(int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col)
-{
-    int8_t x, y;
-    
-    for (y = y0; y <= y1; y++)
-            for (x = x0; x <= x1; x++)
-                    setPixel(x, y, col);
-} // fillRect()

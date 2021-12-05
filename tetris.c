@@ -18,6 +18,7 @@
   along with this software.  If not, see <http://www.gnu.org/licenses/>.
   ================================================================== */ 
 #include "tetris.h"
+#include "pixel.h"
 
 extern playfield_color rgb_bufr; // Buffered version of the red leds
 extern playfield_color rgb_bufg; // Buffered version of the green leds
@@ -39,6 +40,10 @@ uint8_t  screen       = 0; // Index in Tetris screens
 uint8_t  gameFlags    = 0; // Tetris Game-Flags
 uint8_t  joystick     = 0; // The debounced status of the joystick buttons
 uint8_t  old_joystick = 0; // Previous value of joystick variable
+
+uint16_t fieldr[TETRIS_MAX_Y]; // Tetris playfield red-colors
+uint16_t fieldg[TETRIS_MAX_Y]; // Tetris playfield green-colors
+uint16_t fieldb[TETRIS_MAX_Y]; // Tetris playfield blue-colors
 
 /*-------------------------------------------------------------------------
  Purpose   : This function handles the input from the joystick buttons.
@@ -105,6 +110,7 @@ void tetrisInputs(void)
             gameFlags &= ~(1<<FAST_DROP); // Remove Fast Drop flag
         } // else
     } // if
+    
     if (((old_joystick ^ joystick) & STICK_RIGHT) == STICK_RIGHT)
     {
         if (joystick & STICK_RIGHT)
@@ -215,29 +221,6 @@ void CheckX(int8_t *x, int8_t shape, int8_t rotation)
 } // checkX()
 
 /*-------------------------------------------------------------------------
- Purpose   : This function moves a block in the playfield one row down
-  Variables: src_x : the x position of the block in the playfield
-  	     src_y : the y position of the block in the playfield
-  	     width : the width in the x-position of the block to copy
-  	     height: the height in the y-position of the block to copy
-  	     dest_x: the x position of the destination block
-  	     dest_y: the y position of the destination block
-  Returns  : -
-  -------------------------------------------------------------------------*/
-void downOneRow(int8_t src_x , int8_t src_y, uint8_t width, uint8_t height, int8_t dest_x, int8_t dest_y)
-{
-    int8_t  cx, cy;
-    uint8_t col;
-    
-    for (cy = height-1; cy >= 0; cy--)
-        for (cx = 0; cx < width; cx++)
-        {
-            col = getPixel(src_x + cx, src_y + cy);
-            setPixel(dest_x + cx, dest_y + cy, col);
-        } // for
-} // downOneRow()
-
-/*-------------------------------------------------------------------------
  Purpose   : This function checks if the Tetris block can move in the
  	     RIGHT direction. The right of the playfield is limited by
  	     the vertical line at x = TETRIS_WALL_X.
@@ -258,12 +241,12 @@ bool canMoveRight(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             {
                 case NORTH:
                 case SOUTH: 
-                    px = (x > TETRIS_WALL_X - 2) || getPixel(x+1,y)   || getPixel(x+1,y+1) || 
-                         getPixel(x+1,y-1) || getPixel(x+1,y-2);
+                    px = (x > TETRIS_WALL_X - 2) || getPixel(FIELD, x+1,y)   || getPixel(FIELD, x+1,y+1) || 
+                         getPixel(FIELD, x+1,y-1) || getPixel(FIELD, x+1,y-2);
                     break;
                 case EAST:
                 case WEST:  
-                    px = (x > TETRIS_WALL_X - 3) || getPixel(x+2,y);
+                    px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+2,y);
                     break;
             } // switch
             break; // case TYPE_I
@@ -272,18 +255,18 @@ bool canMoveRight(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 switch (rotation)
                 {
                     case NORTH: 
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+1,y) || 
-                             getPixel(x+1,y+1) || getPixel(x+2,y-1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+1,y) || 
+                             getPixel(FIELD, x+1,y+1) || getPixel(FIELD, x+2,y-1);
                         break;
                     case EAST:  
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+2,y) || getPixel(x,y-1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+2,y) || getPixel(FIELD, x,y-1);
                         break;
                     case SOUTH: 
-                        px = (x > TETRIS_WALL_X - 2) || getPixel(x+1,y) || 
-                             getPixel(x+1,y+1) || getPixel(x+1,y-1);
+                        px = (x > TETRIS_WALL_X - 2) || getPixel(FIELD, x+1,y) || 
+                             getPixel(FIELD, x+1,y+1) || getPixel(FIELD, x+1,y-1);
                         break;
                     case WEST:  
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+2,y) || getPixel(x+2,y+1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+2,y) || getPixel(FIELD, x+2,y+1);
                         break;
                 } // switch
                 break; // case TYPE_L
@@ -292,24 +275,24 @@ bool canMoveRight(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 switch (rotation)
                 {
                     case NORTH: 
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+1,y) || 
-                             getPixel(x+2,y+1) || getPixel(x+1,y-1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+1,y) || 
+                             getPixel(FIELD, x+2,y+1) || getPixel(FIELD, x+1,y-1);
                         break;
                     case EAST:  
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+2,y) || getPixel(x+2,y-1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+2,y) || getPixel(FIELD, x+2,y-1);
                         break;
                     case SOUTH: 
-                        px = (x > TETRIS_WALL_X - 2) || getPixel(x+1,y) || 
-                             getPixel(x+1,y+1) || getPixel(x+1,y-1);
+                        px = (x > TETRIS_WALL_X - 2) || getPixel(FIELD, x+1,y) || 
+                             getPixel(FIELD, x+1,y+1) || getPixel(FIELD, x+1,y-1);
                         break;
                     case WEST:  
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+2,y) || getPixel(x,y+1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+2,y) || getPixel(FIELD, x,y+1);
                         break;
                 } // switch
                 break; // case TYPE_J
                 
             case TYPE_O:		
-                px = (x > TETRIS_WALL_X - 2) || getPixel(x+1,y) || getPixel(x+1,y-1);
+                px = (x > TETRIS_WALL_X - 2) || getPixel(FIELD, x+1,y) || getPixel(FIELD, x+1,y-1);
                 break; // case TYPE_O
                 
             case TYPE_Z:
@@ -317,12 +300,12 @@ bool canMoveRight(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 {
                     case NORTH:
                     case SOUTH: 
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+2,y) || 
-                             getPixel(x+2,y+1) || getPixel(x+1,y-1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+2,y) || 
+                             getPixel(FIELD, x+2,y+1) || getPixel(FIELD, x+1,y-1);
                         break;
                     case EAST:
                     case WEST:  
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+1,y) || getPixel(x+2,y-1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+1,y) || getPixel(FIELD, x+2,y-1);
                         break;
                 } // switch
                 break; // case TYPE_Z
@@ -332,12 +315,12 @@ bool canMoveRight(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 {
                     case NORTH:
                     case SOUTH: 
-                        px = (x > TETRIS_WALL_X - 2) || getPixel(x+1,y) || 
-                             getPixel(x+1,y-1) || getPixel(x,y+1);
+                        px = (x > TETRIS_WALL_X - 2) || getPixel(FIELD, x+1,y) || 
+                             getPixel(FIELD, x+1,y-1) || getPixel(FIELD, x,y+1);
                         break;
                     case EAST:
                     case WEST:  
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+2,y) || getPixel(x+1,y-1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+2,y) || getPixel(FIELD, x+1,y-1);
                         break;
                 } // switch
                 break; // case TYPE_S
@@ -346,18 +329,18 @@ bool canMoveRight(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 switch (rotation)
                 {
                     case NORTH: 
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+2,y) || 
-                             getPixel(x+1,y+1) || getPixel(x+1,y-1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+2,y) || 
+                             getPixel(FIELD, x+1,y+1) || getPixel(FIELD, x+1,y-1);
                         break;
                     case EAST:  
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+2,y) || getPixel(x+1,y-1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+2,y) || getPixel(FIELD, x+1,y-1);
                         break;
                     case SOUTH: 
-                        px = (x > TETRIS_WALL_X - 2) || getPixel(x+1,y) || 
-                             getPixel(x+1,y+1) || getPixel(x+1,y-1);
+                        px = (x > TETRIS_WALL_X - 2) || getPixel(FIELD, x+1,y) || 
+                             getPixel(FIELD, x+1,y+1) || getPixel(FIELD, x+1,y-1);
                         break;
                     case WEST:  
-                        px = (x > TETRIS_WALL_X - 3) || getPixel(x+2,y) || getPixel(x+1,y+1);
+                        px = (x > TETRIS_WALL_X - 3) || getPixel(FIELD, x+2,y) || getPixel(FIELD, x+1,y+1);
                         break;
                 } // switch
                 break; // case TYPE_T
@@ -387,12 +370,12 @@ bool canMoveLeft(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             {
                 case NORTH:
                 case SOUTH: 
-                    px = getPixel(x-1,y)   || getPixel(x-1,y+1) || 
-                         getPixel(x-1,y-1) || getPixel(x-1,y-2);
+                    px = getPixel(FIELD, x-1,y)   || getPixel(FIELD, x-1,y+1) || 
+                         getPixel(FIELD, x-1,y-1) || getPixel(FIELD, x-1,y-2);
                     break;
                 case EAST:
                 case WEST:  
-                    px = getPixel(x-3,y);
+                    px = getPixel(FIELD, x-3,y);
                     break;
             } // switch
             break; // case TYPE_I
@@ -401,16 +384,16 @@ bool canMoveLeft(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             switch (rotation)
             {
                 case NORTH: 
-                    px = getPixel(x-1,y) || getPixel(x-1,y+1) || getPixel(x-1,y-1);
+                    px = getPixel(FIELD, x-1,y) || getPixel(FIELD, x-1,y+1) || getPixel(FIELD, x-1,y-1);
                     break;
                 case EAST:  
-                    px = getPixel(x-2,y) || getPixel(x-2,y-1);
+                    px = getPixel(FIELD, x-2,y) || getPixel(FIELD, x-2,y-1);
                     break;
                 case SOUTH: 
-                    px = getPixel(x-1,y) || getPixel(x-2,y+1) || getPixel(x-1,y-1);
+                    px = getPixel(FIELD, x-1,y) || getPixel(FIELD, x-2,y+1) || getPixel(FIELD, x-1,y-1);
                     break;
                 case WEST:  
-                    px = getPixel(x-2,y) || getPixel(x,y+1);
+                    px = getPixel(FIELD, x-2,y) || getPixel(FIELD, x,y+1);
                     break;
             } // switch
             break; // case TYPE_L
@@ -419,22 +402,22 @@ bool canMoveLeft(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             switch (rotation)
             {
                 case NORTH: 
-                    px = getPixel(x-1,y) || getPixel(x-1,y+1) || getPixel(x-1,y-1);
+                    px = getPixel(FIELD, x-1,y) || getPixel(FIELD, x-1,y+1) || getPixel(FIELD, x-1,y-1);
                     break;
                 case EAST:  
-                    px = getPixel(x-2,y) || getPixel(x,y-1);
+                    px = getPixel(FIELD, x-2,y) || getPixel(FIELD, x,y-1);
                     break;
                 case SOUTH: 
-                    px = getPixel(x-1,y) || getPixel(x-1,y+1) || getPixel(x-2,y-1);
+                    px = getPixel(FIELD, x-1,y) || getPixel(FIELD, x-1,y+1) || getPixel(FIELD, x-2,y-1);
                     break;
                 case WEST:  
-                    px = getPixel(x-2,y) || getPixel(x-2,y+1);
+                    px = getPixel(FIELD, x-2,y) || getPixel(FIELD, x-2,y+1);
                     break;
             } // switch
             break; // case TYPE_J
             
         case TYPE_O:
-            px = getPixel(x-2,y) || getPixel(x-2,y-1);
+            px = getPixel(FIELD, x-2,y) || getPixel(FIELD, x-2,y-1);
             break; // case TYPE_O
             
         case TYPE_Z:
@@ -442,11 +425,11 @@ bool canMoveLeft(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             {
                 case NORTH:
                 case SOUTH: 
-                    px = getPixel(x-1,y) || getPixel(x,y+1) || getPixel(x-1,y-1);
+                    px = getPixel(FIELD, x-1,y) || getPixel(FIELD, x,y+1) || getPixel(FIELD, x-1,y-1);
                     break;
                 case EAST:
                 case WEST:  
-                    px = getPixel(x-2,y) || getPixel(x-1,y-1);
+                    px = getPixel(FIELD, x-2,y) || getPixel(FIELD, x-1,y-1);
                     break;
             } // switch
             break; // case TYPE_Z
@@ -456,11 +439,11 @@ bool canMoveLeft(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             {
                 case NORTH:
                 case SOUTH: 
-                    px = getPixel(x-2,y) || getPixel(x-1,y-1) || getPixel(x-2,y+1);
+                    px = getPixel(FIELD, x-2,y) || getPixel(FIELD, x-1,y-1) || getPixel(FIELD, x-2,y+1);
                     break;
                 case EAST:
                 case WEST:  
-                    px = getPixel(x-1,y) || getPixel(x-2,y-1);
+                    px = getPixel(FIELD, x-1,y) || getPixel(FIELD, x-2,y-1);
                     break;
             } // switch
             break; // case TYPE_S
@@ -469,16 +452,16 @@ bool canMoveLeft(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             switch (rotation)
             {
                 case NORTH: 
-                    px = getPixel(x-1,y) || getPixel(x-1,y+1) || getPixel(x-1,y-1);
+                    px = getPixel(FIELD, x-1,y) || getPixel(FIELD, x-1,y+1) || getPixel(FIELD, x-1,y-1);
                     break;
                 case EAST:  
-                    px = getPixel(x-2,y) || getPixel(x-1,y-1);
+                    px = getPixel(FIELD, x-2,y) || getPixel(FIELD, x-1,y-1);
                     break;
                 case SOUTH: 
-                    px = getPixel(x-2,y) || getPixel(x-1,y+1) || getPixel(x-1,y-1);
+                    px = getPixel(FIELD, x-2,y) || getPixel(FIELD, x-1,y+1) || getPixel(FIELD, x-1,y-1);
                     break;
                 case WEST:  
-                    px = getPixel( x-2, y) || getPixel( x-1, y+1);
+                    px = getPixel(FIELD,  x-2, y) || getPixel(FIELD,  x-1, y+1);
                     break;
             } // switch
             break; // case TYPE_T
@@ -512,12 +495,12 @@ bool shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 {
                     case NORTH:
                     case SOUTH: 
-                        retv = ((y < 3) || getPixel(x,y-3)); 
+                        retv = ((y < 3) || getPixel(FIELD, x,y-3)); 
                         break;
                     case EAST:
                     case WEST:	
-                        retv = ((y < 1) || getPixel(x  ,y-1) || getPixel(x+1,y-1) ||
-                                           getPixel(x-1,y-1) || getPixel(x-2,y-1));
+                        retv = ((y < 1) || getPixel(FIELD, x  ,y-1) || getPixel(FIELD, x+1,y-1) ||
+                                           getPixel(FIELD, x-1,y-1) || getPixel(FIELD, x-2,y-1));
                         break;
                 } // rotation
                 break; // TYPE_I
@@ -526,16 +509,16 @@ bool shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 switch (rotation)
                 {
                     case NORTH: 
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x+1,y-2));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x+1,y-2));
                         break;
                     case EAST:  
-                        retv = ((y < 2) || getPixel(x,y-1) || getPixel(x+1,y-1) || getPixel(x-1,y-2)); 
+                        retv = ((y < 2) || getPixel(FIELD, x,y-1) || getPixel(FIELD, x+1,y-1) || getPixel(FIELD, x-1,y-2)); 
                         break;
                     case SOUTH: 
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x-1,y));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x-1,y));
                         break;
                     case WEST:	
-                        retv = ((y < 1) || getPixel(x,y-1) || getPixel(x+1,y-1) || getPixel(x-1,y-1));
+                        retv = ((y < 1) || getPixel(FIELD, x,y-1) || getPixel(FIELD, x+1,y-1) || getPixel(FIELD, x-1,y-1));
                         break;
                 } // rotation
                 break; // TYPE_L
@@ -544,22 +527,22 @@ bool shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 switch (rotation)
                 {
                     case NORTH: 
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x+1,y));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x+1,y));
                         break;
                     case EAST:  
-                        retv = ((y < 2) || getPixel(x,y-1) || getPixel(x+1,y-2) || getPixel(x-1,y-1));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-1) || getPixel(FIELD, x+1,y-2) || getPixel(FIELD, x-1,y-1));
                         break;
                     case SOUTH: 
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x-1,y-2));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x-1,y-2));
                         break;
                     case WEST:	
-                        retv = ((y < 1) || getPixel(x,y-1) || getPixel(x+1,y-1) || getPixel(x-1,y-1));
+                        retv = ((y < 1) || getPixel(FIELD, x,y-1) || getPixel(FIELD, x+1,y-1) || getPixel(FIELD, x-1,y-1));
                         break;
                 } // rotation
                 break; // TYPE_J
                 
             case TYPE_O: // is independent of rotation
-                retv = ((y < 2) || getPixel(x, y-2) || getPixel(x-1,y-2));
+                retv = ((y < 2) || getPixel(FIELD, x, y-2) || getPixel(FIELD, x-1,y-2));
                 break; // TYPE_O
                 
             case TYPE_Z:
@@ -567,11 +550,11 @@ bool shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 {
                     case NORTH:
                     case SOUTH: 
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x+1,y-1));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x+1,y-1));
                         break;
                     case EAST:
                     case WEST:	
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x+1,y-2) || getPixel(x-1,y-1));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x+1,y-2) || getPixel(FIELD, x-1,y-1));
                         break;
                 } // rotation
                 break; // TYPE_Z
@@ -581,11 +564,11 @@ bool shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 {
                     case NORTH:
                     case SOUTH: 
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x-1,y-1));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x-1,y-1));
                         break;
                     case EAST:
                     case WEST:	
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x+1,y-1) || getPixel(x-1,y-2));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x+1,y-1) || getPixel(FIELD, x-1,y-2));
                         break;
                 } // rotation
                 break; // TYPE_Z
@@ -594,16 +577,16 @@ bool shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
                 switch (rotation)
                 {
                     case NORTH: 
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x+1,y-1));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x+1,y-1));
                         break;
                     case EAST:  
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x+1,y-1) || getPixel(x-1,y-1));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x+1,y-1) || getPixel(FIELD, x-1,y-1));
                         break;
                     case SOUTH: 
-                        retv = ((y < 2) || getPixel(x,y-2) || getPixel(x-1,y-1));
+                        retv = ((y < 2) || getPixel(FIELD, x,y-2) || getPixel(FIELD, x-1,y-1));
                         break;
                     case WEST:	
-                        retv = ((y < 1) || getPixel(x,y-1) || getPixel(x+1,y-1) || getPixel(x-1,y-1));
+                        retv = ((y < 1) || getPixel(FIELD, x,y-1) || getPixel(FIELD, x+1,y-1) || getPixel(FIELD, x-1,y-1));
                         break;
                 } // rotation
                 break; // TYPE_T
@@ -614,14 +597,14 @@ bool shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
 
 /*-------------------------------------------------------------------------
  Purpose   : This function draws a Tetris block with the specified colour.
-  Variables: p        : a pointer to the 2D playfield
-  	  	  	 x        : the x position of the Tetris block [0..SIZE_X-1]
-  	  	  	 y        : the y position of the Tetris block [0..SIZE_Y-1]
-  	  	  	 shape    : the shape-type of the Tetris block
-  	  	  	 rotation : the current rotation of the Tetris block
+  Variables: screen  : [FIELD,SCREEN], Tetris playfield or main-screen
+  	     x       : the x position of the Tetris block [0..SIZE_X-1]
+  	     y       : the y position of the Tetris block [0..SIZE_Y-1]
+  	     shape   : the shape-type of the Tetris block
+  	     rotation: the current rotation of the Tetris block
   Returns  : 1 = block can move ; 0 = block can NOT move
   -------------------------------------------------------------------------*/
-void drawShape(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
+void drawShape(bool screen, int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
 {
     uint8_t col; // fixed colour per Tetris block type
 
@@ -633,15 +616,15 @@ void drawShape(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             {
                 case NORTH:
                 case SOUTH: 
-                    setPixel(x,y+1,col); 
-                    setPixel(x,y-1,col);   
-                    setPixel(x,y-2,col);
+                    setPixel(screen, x,y+1,col); 
+                    setPixel(screen, x,y-1,col);   
+                    setPixel(screen, x,y-2,col);
                     break;
                 case EAST:
                 case WEST:  
-                    setPixel(x+1,y,col); 
-                    setPixel(x-1,y,col);   
-                    setPixel(x-2,y,col);
+                    setPixel(screen, x+1,y,col); 
+                    setPixel(screen, x-1,y,col);   
+                    setPixel(screen, x-2,y,col);
                     break;
             } // switch
             break; // TYPE_I
@@ -651,24 +634,24 @@ void drawShape(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             switch (rotation)
             {
                 case NORTH: 
-                    setPixel(x  ,y+1,col); 
-                    setPixel(x  ,y-1,col);   
-                    setPixel(x+1,y-1,col);
+                    setPixel(screen, x  ,y+1,col); 
+                    setPixel(screen, x  ,y-1,col);   
+                    setPixel(screen, x+1,y-1,col);
                     break;
                 case EAST:	
-                    setPixel(x+1,y  ,col); 
-                    setPixel(x-1,y  ,col);   
-                    setPixel(x-1,y-1,col);
+                    setPixel(screen, x+1,y  ,col); 
+                    setPixel(screen, x-1,y  ,col);   
+                    setPixel(screen, x-1,y-1,col);
                     break;
                 case SOUTH: 
-                    setPixel(x  ,y+1,col); 
-                    setPixel(x-1,y+1,col); 
-                    setPixel(x  ,y-1,col);
+                    setPixel(screen, x  ,y+1,col); 
+                    setPixel(screen, x-1,y+1,col); 
+                    setPixel(screen, x  ,y-1,col);
                     break;
                 case WEST:	
-                    setPixel(x+1,y  ,col); 
-                    setPixel(x-1,y  ,col);   
-                    setPixel(x+1,y+1,col);
+                    setPixel(screen, x+1,y  ,col); 
+                    setPixel(screen, x-1,y  ,col);   
+                    setPixel(screen, x+1,y+1,col);
                     break;
             } // switch
             break; // TYPE_L
@@ -678,33 +661,33 @@ void drawShape(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             switch (rotation)
             {
                 case NORTH: 
-                    setPixel(x  ,y+1,col); 
-                    setPixel(x+1,y+1,col); 
-                    setPixel(x  ,y-1,col);
+                    setPixel(screen, x  ,y+1,col); 
+                    setPixel(screen, x+1,y+1,col); 
+                    setPixel(screen, x  ,y-1,col);
                 break;
                 case EAST:  
-                    setPixel(x-1,y  ,col); 
-                    setPixel(x+1,y  ,col);   
-                    setPixel(x+1,y-1,col);
+                    setPixel(screen, x-1,y  ,col); 
+                    setPixel(screen, x+1,y  ,col);   
+                    setPixel(screen, x+1,y-1,col);
                 break;
                 case SOUTH: 
-                    setPixel(x  ,y+1,col); 
-                    setPixel(x  ,y-1,col);   
-                    setPixel(x-1,y-1,col);
+                    setPixel(screen, x  ,y+1,col); 
+                    setPixel(screen, x  ,y-1,col);   
+                    setPixel(screen, x-1,y-1,col);
                 break;
                 case WEST:  
-                    setPixel(x-1,y  ,col); 
-                    setPixel(x+1,y  ,col);   
-                    setPixel(x-1,y+1,col);
+                    setPixel(screen, x-1,y  ,col); 
+                    setPixel(screen, x+1,y  ,col);   
+                    setPixel(screen, x-1,y+1,col);
                 break;
             } // switch
             break; // TYPE_J
             
         case TYPE_O:
             col = COLOUR_TYPE_O;
-            setPixel(x-1,y  ,col); 
-            setPixel(x  ,y-1,col);   
-            setPixel(x-1,y-1,col);
+            setPixel(screen, x-1,y  ,col); 
+            setPixel(screen, x  ,y-1,col);   
+            setPixel(screen, x-1,y-1,col);
             break; // TYPE_O
             
         case TYPE_Z:
@@ -713,15 +696,15 @@ void drawShape(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             {
                 case NORTH:
                 case SOUTH: 
-                    setPixel(x+1,y  ,col); 
-                    setPixel(x+1,y+1,col); 
-                    setPixel(x  ,y-1,col);
+                    setPixel(screen, x+1,y  ,col); 
+                    setPixel(screen, x+1,y+1,col); 
+                    setPixel(screen, x  ,y-1,col);
                     break;
                 case EAST:
                 case WEST:  
-                    setPixel(x-1,y  ,col); 
-                    setPixel(x  ,y-1,col);   
-                    setPixel(x+1,y-1,col);
+                    setPixel(screen, x-1,y  ,col); 
+                    setPixel(screen, x  ,y-1,col);   
+                    setPixel(screen, x+1,y-1,col);
                     break;
             } // switch
             break; // TYPE_Z
@@ -732,15 +715,15 @@ void drawShape(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             {
                 case NORTH:
                 case SOUTH: 
-                    setPixel(x-1,y  ,col); 
-                    setPixel(x-1,y+1,col); 
-                    setPixel(x  ,y-1,col);
+                    setPixel(screen, x-1,y  ,col); 
+                    setPixel(screen, x-1,y+1,col); 
+                    setPixel(screen, x  ,y-1,col);
                     break;
                 case EAST:
                 case WEST:  
-                    setPixel(x+1,y  ,col); 
-                    setPixel(x  ,y-1,col);   
-                    setPixel(x-1,y-1,col);
+                    setPixel(screen, x+1,y  ,col); 
+                    setPixel(screen, x  ,y-1,col);   
+                    setPixel(screen, x-1,y-1,col);
                     break;
             } // switch
             break; // TYPE_S
@@ -750,30 +733,89 @@ void drawShape(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
             switch (rotation)
             {
                 case NORTH: 
-                    setPixel(x+1,y  ,col); 
-                    setPixel(x  ,y+1,col);   
-                    setPixel(x  ,y-1,col);
+                    setPixel(screen, x+1,y  ,col); 
+                    setPixel(screen, x  ,y+1,col);   
+                    setPixel(screen, x  ,y-1,col);
                 break;
                 case EAST:  
-                    setPixel(x+1,y  ,col); 
-                    setPixel(x-1,y  ,col);   
-                    setPixel(x  ,y-1,col);
+                    setPixel(screen, x+1,y  ,col); 
+                    setPixel(screen, x-1,y  ,col);   
+                    setPixel(screen, x  ,y-1,col);
                 break;
                 case SOUTH: 
-                    setPixel(x-1,y  ,col); 
-                    setPixel(x  ,y+1,col);   
-                    setPixel(x  ,y-1,col);
+                    setPixel(screen, x-1,y  ,col); 
+                    setPixel(screen, x  ,y+1,col);   
+                    setPixel(screen, x  ,y-1,col);
                 break;
                 case WEST:  
-                    setPixel(x-1,y  ,col); 
-                    setPixel(x+1,y  ,col);   
-                    setPixel(x  ,y+1,col);
+                    setPixel(screen, x-1,y  ,col); 
+                    setPixel(screen, x+1,y  ,col);   
+                    setPixel(screen, x  ,y+1,col);
                 break;
             } // switch
             break; // TYPE_T
     } // switch (shape)
-    setPixel(x,y,col); // always set base pixel of Tetris block
+    setPixel(screen, x,y,col); // always set base pixel of Tetris block
 } // drawShape()
+
+/*-------------------------------------------------------------------------
+  Purpose   : Copy Tetris Playfield to the Screen
+  Variables : -
+  Returns   : -
+  -------------------------------------------------------------------------*/
+void copyFieldToScreen(void)
+{
+    for (uint8_t y = 0; y < TETRIS_MAX_Y; y++)
+    {
+        rgb_bufr[y] &= ~TETRIS_MASK_X; // Clear Tetris red playfield bits
+        rgb_bufr[y] |= (fieldr[y] & TETRIS_MASK_X); // add red playfield bits
+        rgb_bufg[y] &= ~TETRIS_MASK_X; // Clear Tetris green playfield bits
+        rgb_bufg[y] |= (fieldg[y] & TETRIS_MASK_X); // add green playfield bits
+        rgb_bufb[y] &= ~TETRIS_MASK_X; // Clear Tetris blue playfield bits
+        rgb_bufb[y] |= (fieldb[y] & TETRIS_MASK_X); // add blue playfield bits
+    } // for y
+} // copyFieldToScreen()
+
+/*-------------------------------------------------------------------------
+  Purpose   : Copy Screenbuffer to the Tetris Playfield
+  Variables : -
+  Returns   : -
+  -------------------------------------------------------------------------*/
+void copyScreenToField(void)
+{
+    for (uint8_t y = 0; y < TETRIS_MAX_Y; y++)
+    {
+        fieldr[y] &= ~TETRIS_MASK_X; // Clear Tetris red playfield bits
+        fieldr[y] |= (rgb_bufr[y] & TETRIS_MASK_X); // add red playfield bits
+        fieldg[y] &= ~TETRIS_MASK_X; // Clear Tetris green playfield bits
+        fieldg[y] |= (rgb_bufg[y] & TETRIS_MASK_X); // add green playfield bits
+        fieldb[y] &= ~TETRIS_MASK_X; // Clear Tetris blue playfield bits
+        fieldb[y] |= (rgb_bufb[y] & TETRIS_MASK_X); // add blue playfield bits
+    } // for y
+} // copyScreenToField()
+
+/*-------------------------------------------------------------------------
+ Purpose   : This function moves a block in the playfield one row down. The
+             row pointed to by src_y is overwritten, the top-level row of
+             the playfield is cleared.
+  Variables: src_y : the y position of the block in the playfield
+  Returns  : -
+  -------------------------------------------------------------------------*/
+void downOneRowInField(int8_t src_y)
+{
+    for (uint8_t cy = src_y; cy < TETRIS_MAX_Y-1; cy++)
+    {
+        fieldr[cy] &= ~TETRIS_MASK_X; // Clear Tetris red playfield bits 
+        fieldr[cy] |= (fieldr[cy+1] & TETRIS_MASK_X); // copy from next row
+        fieldg[cy] &= ~TETRIS_MASK_X; // Clear Tetris green playfield bits 
+        fieldg[cy] |= (fieldg[cy+1] & TETRIS_MASK_X); // copy from next row
+        fieldb[cy] &= ~TETRIS_MASK_X; // Clear Tetris blue playfield bits 
+        fieldb[cy] |= (fieldb[cy+1] & TETRIS_MASK_X); // copy from next row
+    } // for cy
+    fieldr[TETRIS_MAX_Y-1] &= ~TETRIS_MASK_X; // clear top-level rows of playfield
+    fieldg[TETRIS_MAX_Y-1] &= ~TETRIS_MASK_X; // clear top-level rows of playfield
+    fieldb[TETRIS_MAX_Y-1] &= ~TETRIS_MASK_X; // clear top-level rows of playfield
+} // downOneRowInField()
 
 /*-------------------------------------------------------------------------
   Purpose   : the Tetris Game Screen
@@ -782,16 +824,16 @@ void drawShape(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
   -------------------------------------------------------------------------*/
 void tetrisGameScreen(void)
 {
-    int8_t tmpRow, tmpCol, fflag;
+    int8_t tmpY;
 
     if (gameFlags & (1<<NEW_GAME)) // Game just started
     {
         nextShape[0] = (RandomNumber() % 7); // | Fill in
         nextShape[1] = (RandomNumber() % 7); // | the shape
         nextShape[2] = (RandomNumber() % 7); // | stack
+        clearScreen(FIELD);  // Clear the Tetris playfield
         score     = 0;
         count     = 0;
-        //FillRect(field,0,0,SIZE_X,MAX_Y,EMPTY); // Clear entire RGB Platform
         shift     = 0;
         direction = 1;
         // unset new_game flag and all others, just in case
@@ -809,27 +851,16 @@ void tetrisGameScreen(void)
             screen = 3; // Game over
             return;     // Back to tetris_main()
         } // if
-        gameFlags |= (1<<NEW_SHAPE);      // Need to start new shape
-        drawShape(x, y, shape, rotation); // Place Tetris block on playfield
+        gameFlags |= (1<<NEW_SHAPE);             // Need to start new shape
+        drawShape(FIELD, x, y, shape, rotation); // Place Tetris block in playfield
         score += 10; // add 10 points for every positioned shape
 
-        // scan the whole gaming field to look for the rows that need to be erased
-        for (tmpRow = 0; tmpRow < MAX_Y-1; tmpRow++)
+        // scan the whole gaming field to look for rows that need to be erased
+        for (tmpY = 0; tmpY < TETRIS_MAX_Y; tmpY++)
         {
-            fflag  = 1;// Hope for the best
-            tmpCol = 0;
-            while ((tmpCol < TETRIS_WALL_X) && fflag)
-            {
-                if (getPixel(tmpCol, tmpRow) == EMPTY)
-                {
-                    fflag = 0; // row is NOT completely full
-                } // if
-                tmpCol++;
-            } // while tmpCol
-
-            if (fflag) // If the flag is still up, we must've found a full row
-            {
-                drawLine(0, tmpRow, TETRIS_WALL_X-1, tmpRow, WHITE); // Fill in Found Row with white
+            if (((fieldr[tmpY] | fieldg[tmpY] | fieldb[tmpY]) & TETRIS_MASK_X) == TETRIS_MASK_X)
+            {   // We have found a full row
+                drawLine(FIELD, 0, tmpY, TETRIS_WALL_X-1, tmpY, WHITE); // Fill row with white in playfield
                 score += 100; // add 100 points for every deleted row
                 count  = 0;
                 gameFlags |= (1<<ROW_FOUND);
@@ -851,33 +882,24 @@ void tetrisGameScreen(void)
         gameFlags &= ~(1<<NEW_SHAPE); // unset new_shape flag
     } // if
 
-    drawLine(TETRIS_WALL_X, 0, TETRIS_WALL_X, SIZE_Y-1, WHITE); // Line separating gaming area from shape stack
-    drawShape(SIZE_X-2, SIZE_Y- 2, nextShape[0], nextShape[0] == TYPE_I ? NORTH : EAST);	// |   Shapes
-    drawShape(SIZE_X-2, SIZE_Y- 7, nextShape[1], nextShape[1] == TYPE_I ? NORTH : EAST);	// |    in a
-    drawShape(SIZE_X-2, SIZE_Y-12, nextShape[2], nextShape[2] == TYPE_I ? NORTH : EAST);	// | Shape stack
-    drawShape(x, y, shape, rotation); // Draw current playable shape
+    copyFieldToScreen(); // Copy the Tetris playfield to the screen
+    drawLine(SCREEN, TETRIS_WALL_X, 0, TETRIS_WALL_X, TETRIS_MAX_Y-1, WHITE); // Line separating gaming area from shape stack
+    drawShape(SCREEN, SIZE_X-2, TETRIS_MAX_Y- 2, nextShape[0], nextShape[0] == TYPE_I ? NORTH : EAST);	// |   Shapes
+    drawShape(SCREEN, SIZE_X-2, TETRIS_MAX_Y- 7, nextShape[1], nextShape[1] == TYPE_I ? NORTH : EAST);	// |    in a
+    drawShape(SCREEN, SIZE_X-2, TETRIS_MAX_Y-12, nextShape[2], nextShape[2] == TYPE_I ? NORTH : EAST);	// | Shape stack
+    drawShape(SCREEN, x, y, shape, rotation); // Draw current playable shape
 
     if (gameFlags & (1<<ROW_FOUND))
     {
-        if (count > (MAX_LEVEL - level)) // Full row stays white until we reach needed frame count
-        {
-            for (tmpRow=0; tmpRow<SIZE_Y; tmpRow++)
+        if (count > (MAX_LEVEL - level)) 
+        {   // Full row stays white until we reach needed frame count
+            for (tmpY = 0; tmpY < TETRIS_MAX_Y; tmpY++)
             {
-                fflag  = 1;// Hope for the best
-                tmpCol = 0;
-                while ((tmpCol < TETRIS_WALL_X) && fflag)
-                {
-                    if (getPixel(tmpCol,tmpRow) == EMPTY)
-                    {
-                        fflag = 0; // row is NOT completely full
-                    } // if
-                    tmpCol++;
-                } // while tmpCol
-
-                if (fflag) // If the flag is still up, we must have found a full row
-                {   // Shift gaming area 1 down
-                    downOneRow(0, tmpRow+1, TETRIS_WALL_X, SIZE_Y-tmpRow-1, 0, tmpRow); // shift gaming area 1 down
-                    tmpRow--; // since we just deleted a row, we need to update the row number
+                if (((fieldr[tmpY] | fieldg[tmpY] | fieldb[tmpY]) & TETRIS_MASK_X) == TETRIS_MASK_X)
+                {   // We have found a full row, shift gaming area 1 down
+                    downOneRowInField(tmpY); // The Tetris playfield drops 1 row, removing the full row
+                    copyFieldToScreen();     // Copy the Tetris playfield to the Screen
+                    tmpY--; // since we just deleted a row, we need to update the row number
                 } // if
             } // for
             gameFlags &= ~(1<<ROW_FOUND);
@@ -886,11 +908,18 @@ void tetrisGameScreen(void)
     } // if
     else if (((gameFlags & (1<<FAST_DROP)) && (count >1)) || ((!(gameFlags & (1<<FAST_DROP))) && (count > (MAX_LEVEL - level))))
     { 	// if we are dropping shape fast then wait till count > 1, else wait till it's bigger then MAX_LEVEL-level
-        gameFlags |= (shouldPlace(x, y, shape, rotation) << PLACE_SHAPE); // Check pixels to see when the shape reaches bottom or a pile
-        if (!(gameFlags & (1<<PLACE_SHAPE)))
-                y--;
+        if (shouldPlace(x, y, shape, rotation)) // Check pixels to see when the shape reaches bottom or a pile
+        {
+            gameFlags |= (1 << PLACE_SHAPE);
+            gameFlags &= ~(1<<FAST_DROP); // Remove Fast Drop flag
+        } // if
+        else
+        {
+            gameFlags &= ~(1 << PLACE_SHAPE);
+            y--;
+        } // else
         if (gameFlags & (1<<FAST_DROP))
-                score++; // add one point for every lowering with a fast drop
+            score++; // add one point for every lowering with a fast drop
         count = 0;
     } // if
     count++;
@@ -904,18 +933,18 @@ void tetrisGameScreen(void)
 void tetrisMenuScreen(void)
 {
 	gameFlags |= (1<<NEW_GAME);
-	printChar( 2, shift+40, 'T', RED    ,VERT);
-	printChar( 2, shift+32, 'E', GREEN  ,VERT);
-	printChar( 2, shift+24, 'T', BLUE   ,VERT);
-	printChar( 2, shift+16, 'R', MAGENTA,VERT);
-	printChar( 2, shift+ 8, 'I', YELLOW ,VERT);
-	printChar( 2, shift   , 'S', WHITE  ,VERT);
-	drawShape(11, shift+4 , TYPE_T, EAST);
-	drawShape(11, shift+12, TYPE_S, EAST);
-	drawShape(11, shift+20, TYPE_Z, EAST);
-	drawShape(11, shift+28, TYPE_J, EAST);
-	drawShape(11, shift+36, TYPE_O, EAST);
-	drawShape(11, shift+44, TYPE_L, EAST);
+	printChar(SCREEN,  2, shift+40, 'T', RED    ,VERT);
+	printChar(SCREEN,  2, shift+32, 'E', GREEN  ,VERT);
+	printChar(SCREEN,  2, shift+24, 'T', BLUE   ,VERT);
+	printChar(SCREEN,  2, shift+16, 'R', MAGENTA,VERT);
+	printChar(SCREEN,  2, shift+ 8, 'I', YELLOW ,VERT);
+	printChar(SCREEN,  2, shift   , 'S', WHITE  ,VERT);
+	drawShape(SCREEN, 11, shift+4 , TYPE_T, EAST);
+	drawShape(SCREEN, 11, shift+12, TYPE_S, EAST);
+	drawShape(SCREEN, 11, shift+20, TYPE_Z, EAST);
+	drawShape(SCREEN, 11, shift+28, TYPE_J, EAST);
+	drawShape(SCREEN, 11, shift+36, TYPE_O, EAST);
+	drawShape(SCREEN, 11, shift+44, TYPE_L, EAST);
 
 	if (direction) shift++;
 	else           shift--;
@@ -933,23 +962,23 @@ void tetrisPauseScreen(void)
 	short int lvl1, lvl2;
 	int tmpLevel = level;
         
-	printChar(1,shift+29,'P', RED, VERT);
-	printChar(1,shift+21,'a', RED, VERT);
-	printChar(1,shift+14,'u', RED, VERT);
-	printChar(1,shift+ 7,'s', RED, VERT);
-	printChar(1,shift   ,'e', RED, VERT);
+	printChar(SCREEN, 1,shift+29,'P', RED, VERT);
+	printChar(SCREEN, 1,shift+21,'a', RED, VERT);
+	printChar(SCREEN, 1,shift+14,'u', RED, VERT);
+	printChar(SCREEN, 1,shift+ 7,'s', RED, VERT);
+	printChar(SCREEN, 1,shift   ,'e', RED, VERT);
 
-	printChar(9,shift+37,'L', GREEN, VERT);
-	printChar(9,shift+29,'e', GREEN, VERT);
-	printChar(9,shift+21,'v', GREEN, VERT);
-	printChar(9,shift+14,'e', GREEN, VERT);
-	printChar(9,shift+ 7,'l', GREEN, VERT);
+	printChar(SCREEN, 9,shift+37,'L', GREEN, VERT);
+	printChar(SCREEN, 9,shift+29,'e', GREEN, VERT);
+	printChar(SCREEN, 9,shift+21,'v', GREEN, VERT);
+	printChar(SCREEN, 9,shift+14,'e', GREEN, VERT);
+	printChar(SCREEN, 9,shift+ 7,'l', GREEN, VERT);
 	lvl2 = (tmpLevel / 10);
 	tmpLevel -= lvl2*10;
 	lvl1 = tmpLevel;
 
-	printChar(9,shift  ,'0'+lvl2, YELLOW,VERT); // | Current
-	printChar(9,shift-7,'0'+lvl1, YELLOW,VERT); // |  Level
+	printChar(SCREEN, 9,shift  ,'0'+lvl2, YELLOW,VERT); // | Current
+	printChar(SCREEN, 9,shift-7,'0'+lvl1, YELLOW,VERT); // |  Level
 
 	if (direction) shift++;
 	else	       shift--;
@@ -967,15 +996,15 @@ void tetrisGameOverScreen(void)
 	short int ch1, ch2, ch3, ch4, ch5, ch6;
 	int tmpScore = score;
         
-	printChar(1,shift+56, 'G', RED,VERT);
-	printChar(1,shift+48, 'A', RED,VERT);
-	printChar(1,shift+40, 'M', RED,VERT);
-	printChar(1,shift+32, 'E', RED,VERT);
+	printChar(SCREEN, 1,shift+56, 'G', RED,VERT);
+	printChar(SCREEN, 1,shift+48, 'A', RED,VERT);
+	printChar(SCREEN, 1,shift+40, 'M', RED,VERT);
+	printChar(SCREEN, 1,shift+32, 'E', RED,VERT);
 
-	printChar(1,shift+24, 'O', RED,VERT);
-	printChar(1,shift+16, 'V', RED,VERT);
-	printChar(1,shift+ 8, 'E', RED,VERT);
-	printChar(1,shift   , 'R', RED,VERT);
+	printChar(SCREEN, 1,shift+24, 'O', RED,VERT);
+	printChar(SCREEN, 1,shift+16, 'V', RED,VERT);
+	printChar(SCREEN, 1,shift+ 8, 'E', RED,VERT);
+	printChar(SCREEN, 1,shift   , 'R', RED,VERT);
 	ch6 = tmpScore / 100000; tmpScore -= ch6 * 100000;
 	ch5 = tmpScore /  10000; tmpScore -= ch5 *  10000;
 	ch4 = tmpScore /   1000; tmpScore -= ch4 *   1000;
@@ -983,12 +1012,12 @@ void tetrisGameOverScreen(void)
 	ch2 = tmpScore /    10;  tmpScore -= ch2 *     10;
 	ch1 = tmpScore;
 
-	printChar(9,shift+48, '0'+ch6, YELLOW,VERT); // |
-	printChar(9,shift+40, '0'+ch5, YELLOW,VERT); // | Final
-	printChar(9,shift+32, '0'+ch4, YELLOW,VERT); // |
-	printChar(9,shift+24, '0'+ch3, YELLOW,VERT); // |
-	printChar(9,shift+16, '0'+ch2, YELLOW,VERT); // |	score
-	printChar(9,shift+ 8, '0'+ch1, YELLOW,VERT); // |
+	printChar(SCREEN, 9,shift+48, '0'+ch6, YELLOW,VERT); // |
+	printChar(SCREEN, 9,shift+40, '0'+ch5, YELLOW,VERT); // | Final
+	printChar(SCREEN, 9,shift+32, '0'+ch4, YELLOW,VERT); // |
+	printChar(SCREEN, 9,shift+24, '0'+ch3, YELLOW,VERT); // |
+	printChar(SCREEN, 9,shift+16, '0'+ch2, YELLOW,VERT); // |	score
+	printChar(SCREEN, 9,shift+ 8, '0'+ch1, YELLOW,VERT); // |
 
 	if (direction) shift++;
 	else	       shift--;
@@ -1003,8 +1032,8 @@ void tetrisGameOverScreen(void)
   -------------------------------------------------------------------------*/
 void tetrisMain(void)
 {
-    clearScreen();  // Clear the entire screen
-    tetrisInputs(); // read joystick values and update game Flags
+    clearScreen(SCREEN);  // Clear the entire screen
+    tetrisInputs();       // read joystick values and update game Flags
 
     if (gameFlags & (1<<CLEAR_SHIFT))
     {
