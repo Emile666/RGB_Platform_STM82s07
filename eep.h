@@ -28,16 +28,17 @@
 #define EEP_TEXT2          (0x0080) /* Text-string bottom-row */
 #define EEP_COL1           (0x0100) /* Colors for text-string top-row */
 #define EEP_COL2           (0x0180) /* Colors for text-string bottom-row */
-
+#define EEP_DST_ACTIVE     (0x0200) /* 1 = DST is Active */
+      
 #define NO_INIT            (0xFF)
 #define USE_ETH            (0x00)
 #define USE_USB            (0xFF)
 
 // Function prototypes
-uint8_t  eep_read8(uint8_t eep_address);
-uint16_t eep_read16(uint8_t eep_address);
-void     eep_write8(uint8_t eep_address, uint8_t data);
-void     eep_write16(uint8_t eep_address, uint16_t data);
+uint8_t  eep_read8(uint16_t eep_address);
+uint16_t eep_read16(uint16_t eep_address);
+void     eep_write8(uint16_t eep_address, uint8_t data);
+void     eep_write16(uint16_t eep_address, uint16_t data);
 void     eep_write_string(uint16_t eep_address,char *s);
 void     eep_read_string(uint16_t eep_address,char *s);
 

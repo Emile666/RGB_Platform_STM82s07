@@ -24,9 +24,13 @@
 #include "scheduler.h"
 #include "eep.h"
 #include "pixel.h"
+#include "i2c_bb.h"
+#include "i2c_ds3231_bb.h"
 
-extern  task_struct task_list[];      // struct with all tasks
+extern  task_struct task_list[]; // struct with all tasks
 extern  uint8_t     max_tasks;
+extern  Time        dt;          // Struct with time and date values, updated every sec.
+extern  bool        dst_active;  // true = Daylight Saving Time active
 
 char    rs232_inbuf[UART_BUFLEN];     // buffer for RS232 commands
 uint8_t rs232_ptr = 0;                // index in RS232 buffer
@@ -132,37 +136,24 @@ void list_all_tasks(void)
 } // list_all_tasks()
 
 /*-----------------------------------------------------------------------------
-  Purpose: This function colors the text-input for display as a lichtkrant.
-           The first letter of a word gets another color, every word also
-           gets another color.
-  Variables: 
-      s   : the string that contains the text to color
-      scol: the string contaings the colors
-  Returns : -
+  Purpose  : This routine reads the time and date from the DS3231 RTC and 
+             prints this info to the uart.
+  Variables: -
+  Returns  : -
   ---------------------------------------------------------------------------*/
-void color_text_input(char *s, uint8_t *scol)
+void print_date_and_time(void)
 {
-    uint8_t col = BLUE;
-    uint8_t cap = true;
-    
-    for (uint8_t i = 0; i < strlen(s); i++)
-    {
-        if (cap == true)
-        {
-            cap = false;
-            if (col != WHITE) 
-                 scol[i] = ~col & 0x07; // invert color of first letter
-            else scol[i] = BLUE;
-        } // if
-        else scol[i] = col;
-        if (s[i] == ' ')
-        {
-            col++;
-            if (col > WHITE) col = BLUE;
-            cap = true;
-        } // if
-    } // for i   
-} // color_text_input()
+    char s2[40]; // Used for printing to UART
+    uart1_printf("DS3231: ");
+    sprintf(s2," %d-%d-%d, %d:%d.%d",
+               dt.day , dt.mon, dt.year,
+               dt.hour, dt.min, dt.sec);
+    uart1_printf(s2);
+    sprintf(s2," dow:%d, dst:%d\n",
+               dt.dow, dst_active);
+    uart1_printf(s2);
+} // print_date_and_time()
+
 /*-----------------------------------------------------------------------------
   Purpose: interpret commands which are received via the USB serial terminal:
    - S0           : Ebrew hardware revision number (also disables delayed-start)
@@ -178,13 +169,46 @@ uint8_t execute_single_command(char *s)
    uint8_t  num  = atoi(&s[1]); // convert number in command (until space is found)
    uint8_t  rval = NO_ERR;
    char     s2[40]; // Used for printing to RS232 port
+   char     *s1;
+   uint8_t  d,m,h,sec;
+   uint16_t y;
+   const char sep[] = ":-.";
    
-   uart1_printf("s[]:");
-   uart1_printf(s);
-   uart1_printf("\n");
    switch (tolower(s[0]))
    {
-	   case 's': // System commands
+        case 'd': // Set Date, 1 = Get Date
+		 switch (num)
+		 {
+                    case 0: // Set Date
+			    s1 = strtok(&s[3],sep);
+                            d  = atoi(s1);
+                            s1 = strtok(NULL ,sep);
+                            m  = atoi(s1);
+                            s1 = strtok(NULL ,sep);
+                            y  = atoi(s1);
+                            sprintf(s2,"Date: %d-%d-%d\n",d,m,y);
+                            uart1_printf(s2);
+                            ds3231_setdate(d,m,y); // write to DS3231 IC
+                            break;
+                    case 1: // Set Time
+                            s1      = strtok(&s[3],sep);
+                            h       = atoi(s1);
+                            s1      = strtok(NULL ,sep);
+                            m       = atoi(s1);
+                            s1      = strtok(NULL ,sep);
+                            sec     = atoi(s1);
+                            sprintf(s2,"Time: %d:%d:%d\n",h,m,sec);
+                            uart1_printf(s2);
+                            ds3231_settime(h,m,sec); // write to DS3231 IC
+                            break;
+                    case 2: // Get Date & Time
+                            print_date_and_time(); 
+                            break;
+                   default: break;
+                 } // switch
+                 break;
+
+        case 's': // System commands
                rval = 67 + num;
                switch (num)
                {

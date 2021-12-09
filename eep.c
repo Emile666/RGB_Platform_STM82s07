@@ -26,7 +26,7 @@
                           is the n-th 16-bit variable within the EEPROM.
   Returns  : the (8-bit value)
   ---------------------------------------------------------------------------*/
-uint8_t eep_read8(uint8_t eep_address)
+uint8_t eep_read8(uint16_t eep_address)
 {
     uint8_t data;
     
@@ -42,7 +42,7 @@ uint8_t eep_read8(uint8_t eep_address)
                           is the n-th 16-bit variable within the EEPROM.
   Returns  : the (16-bit value)
   ---------------------------------------------------------------------------*/
-uint16_t eep_read16(uint8_t eep_address)
+uint16_t eep_read16(uint16_t eep_address)
 {
     uint16_t data;
     
@@ -61,7 +61,7 @@ uint16_t eep_read16(uint8_t eep_address)
              data       : 8-bit value to write to the EEPROM
   Returns  : -
   ---------------------------------------------------------------------------*/
-void eep_write8(uint8_t eep_address,uint8_t data)
+void eep_write8(uint16_t eep_address,uint8_t data)
 {
     char *address = (char *)EEP_BASE_ADDR; //  EEPROM base address.
 
@@ -83,7 +83,7 @@ void eep_write8(uint8_t eep_address,uint8_t data)
              data       : 16-bit value to write to the EEPROM
   Returns  : -
   ---------------------------------------------------------------------------*/
-void eep_write16(uint8_t eep_address,uint16_t data)
+void eep_write16(uint16_t eep_address,uint16_t data)
 {
     char *address = (char *)EEP_BASE_ADDR; //  EEPROM base address.
 
