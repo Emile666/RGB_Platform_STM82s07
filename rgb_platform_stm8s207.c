@@ -33,9 +33,9 @@ char *revision_nr = "0.30\n"; // RGB Platform SW revision number
 // rgb_buf[0] is row 0 (bottom-row), rows range from 0..MAX_Y
 // Bit 2: Red, Bit 1: Green, Bit 0: Blue, see defines in pixel.h file
 //-------------------------------------------------------------------------
-playfield_color rgb_bufr = {0}; // The actual status of the red leds
-playfield_color rgb_bufg = {0}; // The actual status of the green leds
-playfield_color rgb_bufb = {0}; // The actual status of the blue leds
+uint16_t rgb_bufr[MAX_Y] = {0}; // The actual status of the red leds
+uint16_t rgb_bufg[MAX_Y] = {0}; // The actual status of the green leds
+uint16_t rgb_bufb[MAX_Y] = {0}; // The actual status of the blue leds
 
 //-------------------------------------------------------------------------
 // Global variables for lichtkrant() function
@@ -51,7 +51,7 @@ int8_t  row1_bit;      // points to bit nr. to display
 uint8_t row2_std = 1;  // STD state for bottom row
 uint8_t cur_row2_idx;  // points to char. being displayed
 int8_t  row2_bit;      // points to bit nr. to display
-uint8_t lk_changed;    // [LK1, LK2]. Flag that text is changed 
+uint8_t lk_status;     // Lichtkrant status [LK1, LK2, LK1SHL, LK2SHL].
 
 char dows[8][3] = {"","Ma","Di","Wo","Do","Vr","Za","Zo"};
 
@@ -121,14 +121,14 @@ void lichtkrant1(void)
         } // if
         break;
     case 2: //SHL1 entire playfield and add new character
-        if (lk_changed & LK1)
+        if (lk_status & LK1)
         {
-            lk_changed &= ~LK1; // reset flag
+            lk_status &= ~LK1; // reset flag
             row1_std    = 1;
         }
         else
         {
-            for (cy = SIZE_Y-1; cy > 0; cy--)
+            for (cy = MAX_Y-1; cy > 0; cy--)
             {
                  rgb_bufr[cy] &= 0x00FF; // clear bits 15-08
                  rgb_bufr[cy] |= (rgb_bufr[cy-1] & 0xFF00);
@@ -152,6 +152,12 @@ void lichtkrant1(void)
                 if (++cur_row1_idx >= slen)
                 {
                     cur_row1_idx = 0; // points to beginning of text
+                    for (i = 0; i < slen; i++)
+                    {   // change colors after 1 full run.
+                        lk1c[i]++;
+                        if      (lk1c[i] > WHITE)  lk1c[i] = CYAN;
+                        else if (lk1c[i] == BLACK) lk1c[i] = MAGENTA;
+                    } // for i
                 } // if
             } // else
         } // else
@@ -173,7 +179,7 @@ void lichtkrant2(void)
     slen = strlen(lk2);
     switch (row2_std)
     {
-    case 1: //Init., place 4 characters
+    case 1: //Init., place maxch characters
         for (i = 0; i < maxch; i++)
         {
             printChar(SCREEN,0,i<<3,lk2[maxch-1-i],lk2c[maxch-1-i],HOR);
@@ -186,14 +192,14 @@ void lichtkrant2(void)
         } // if
         break;
     case 2: //SHL1 entire playfield and add new character
-        if (lk_changed & LK2)
+        if (lk_status & LK2)
         {
-            lk_changed &= ~LK2; // reset flag
+            lk_status &= ~LK2; // reset flag
             row2_std    = 1;
         }
         else
         {
-            for (cy = SIZE_Y-1; cy > 0; cy--)
+            for (cy = MAX_Y-1; cy > 0; cy--)
             {
                  rgb_bufr[cy] &= 0xFF00; // clear bits 07-00
                  rgb_bufr[cy] |= (rgb_bufr[cy-1] & 0x00FF);
@@ -217,10 +223,12 @@ void lichtkrant2(void)
                 if (++cur_row2_idx >= slen)
                 {
                     cur_row2_idx = 0; // points to beginning of text
-                } // if
-                if (slen <= maxch)
-                {
-                    row2_std = 1; // Did text become smaller?
+                    for (i = 0; i < slen; i++)
+                    {   // change colors after 1 full run.
+                        lk2c[i]++;
+                        if      (lk2c[i] > WHITE)  lk1c[i] = CYAN;
+                        else if (lk2c[i] == BLACK) lk1c[i] = MAGENTA;
+                    } // for i
                 } // if
             } // else
         } // else

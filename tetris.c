@@ -20,9 +20,9 @@
 #include "tetris.h"
 #include "pixel.h"
 
-extern playfield_color rgb_bufr; // Buffered version of the red leds
-extern playfield_color rgb_bufg; // Buffered version of the green leds
-extern playfield_color rgb_bufb; // Buffered version of the blue leds
+extern uint16_t rgb_bufr[]; // Buffered version of the red leds
+extern uint16_t rgb_bufg[]; // Buffered version of the green leds
+extern uint16_t rgb_bufb[]; // Buffered version of the blue leds
 extern uint8_t  atascii[128][8]; // Atari XL Font
 
 int8_t   shift = 0;		// | Variables for
@@ -41,9 +41,9 @@ uint8_t  gameFlags    = 0; // Tetris Game-Flags
 uint8_t  joystick     = 0; // The debounced status of the joystick buttons
 uint8_t  old_joystick = 0; // Previous value of joystick variable
 
-uint16_t fieldr[TETRIS_MAX_Y]; // Tetris playfield red-colors
-uint16_t fieldg[TETRIS_MAX_Y]; // Tetris playfield green-colors
-uint16_t fieldb[TETRIS_MAX_Y]; // Tetris playfield blue-colors
+uint16_t fieldr[TETRIS_SIZE_Y]; // Tetris playfield red-colors
+uint16_t fieldg[TETRIS_SIZE_Y]; // Tetris playfield green-colors
+uint16_t fieldb[TETRIS_SIZE_Y]; // Tetris playfield blue-colors
 
 /*-------------------------------------------------------------------------
  Purpose   : This function handles the input from the joystick buttons.
@@ -476,8 +476,8 @@ bool canMoveLeft(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
              (the initial position), this function returns a 0 indicating
              that the block can move further down.
   Variables: field    : pointer to 2D playfield
-  	  	  	 x        : the x position of the Tetris block [0..SIZE_X-1]
-  	  	  	 y        : the y position of the Tetris block [0..SIZE_Y-1]
+  	  	  	 x        : the x position of the Tetris block [0..TETRIS_SIZE_X-1]
+  	  	  	 y        : the y position of the Tetris block [0..TETRIS_SIZE_Y-1]
   	  	  	 shape    : the shape-type of the Tetris block
   	  	  	 rotation : the current rotation of the Tetris block
   Returns  : true = block should be placed ; false = block can move further down
@@ -486,7 +486,7 @@ bool shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
 {
     bool retv = false;
     
-    if ((x >= 0) && (x < SIZE_X) && (y < SIZE_Y))
+    if ((x >= 0) && (x < TETRIS_SIZE_X) && (y < TETRIS_SIZE_Y))
     {
         switch (shape)
         {
@@ -598,8 +598,8 @@ bool shouldPlace(int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
 /*-------------------------------------------------------------------------
  Purpose   : This function draws a Tetris block with the specified colour.
   Variables: screen  : [FIELD,SCREEN], Tetris playfield or main-screen
-  	     x       : the x position of the Tetris block [0..SIZE_X-1]
-  	     y       : the y position of the Tetris block [0..SIZE_Y-1]
+  	     x       : the x position of the Tetris block [0..TETRIS_SIZE_X-1]
+  	     y       : the y position of the Tetris block [0..TETRIS_SIZE_Y-1]
   	     shape   : the shape-type of the Tetris block
   	     rotation: the current rotation of the Tetris block
   Returns  : 1 = block can move ; 0 = block can NOT move
@@ -765,7 +765,7 @@ void drawShape(bool screen, int8_t x, int8_t y, uint8_t shape, uint8_t rotation)
   -------------------------------------------------------------------------*/
 void copyFieldToScreen(void)
 {
-    for (uint8_t y = 0; y < TETRIS_MAX_Y; y++)
+    for (uint8_t y = 0; y < TETRIS_SIZE_Y; y++)
     {
         rgb_bufr[y] &= ~TETRIS_MASK_X; // Clear Tetris red playfield bits
         rgb_bufr[y] |= (fieldr[y] & TETRIS_MASK_X); // add red playfield bits
@@ -783,7 +783,7 @@ void copyFieldToScreen(void)
   -------------------------------------------------------------------------*/
 void copyScreenToField(void)
 {
-    for (uint8_t y = 0; y < TETRIS_MAX_Y; y++)
+    for (uint8_t y = 0; y < TETRIS_SIZE_Y; y++)
     {
         fieldr[y] &= ~TETRIS_MASK_X; // Clear Tetris red playfield bits
         fieldr[y] |= (rgb_bufr[y] & TETRIS_MASK_X); // add red playfield bits
@@ -803,7 +803,7 @@ void copyScreenToField(void)
   -------------------------------------------------------------------------*/
 void downOneRowInField(int8_t src_y)
 {
-    for (uint8_t cy = src_y; cy < TETRIS_MAX_Y-1; cy++)
+    for (uint8_t cy = src_y; cy < TETRIS_SIZE_Y-1; cy++)
     {
         fieldr[cy] &= ~TETRIS_MASK_X; // Clear Tetris red playfield bits 
         fieldr[cy] |= (fieldr[cy+1] & TETRIS_MASK_X); // copy from next row
@@ -812,10 +812,31 @@ void downOneRowInField(int8_t src_y)
         fieldb[cy] &= ~TETRIS_MASK_X; // Clear Tetris blue playfield bits 
         fieldb[cy] |= (fieldb[cy+1] & TETRIS_MASK_X); // copy from next row
     } // for cy
-    fieldr[TETRIS_MAX_Y-1] &= ~TETRIS_MASK_X; // clear top-level rows of playfield
-    fieldg[TETRIS_MAX_Y-1] &= ~TETRIS_MASK_X; // clear top-level rows of playfield
-    fieldb[TETRIS_MAX_Y-1] &= ~TETRIS_MASK_X; // clear top-level rows of playfield
+    fieldr[TETRIS_SIZE_Y-1] &= ~TETRIS_MASK_X; // clear top-level rows of playfield
+    fieldg[TETRIS_SIZE_Y-1] &= ~TETRIS_MASK_X; // clear top-level rows of playfield
+    fieldb[TETRIS_SIZE_Y-1] &= ~TETRIS_MASK_X; // clear top-level rows of playfield
 } // downOneRowInField()
+
+/*-------------------------------------------------------------------------
+  Purpose   : Print Tetris game score at top of field (needs at least 2 PCBs).
+  Variables : -
+  Returns   : -
+  -------------------------------------------------------------------------*/
+void printScore(void)
+{
+    uint16_t tmpScore = score;
+    uint8_t  ch;
+    
+    ch = (uint8_t)(tmpScore / 10000); tmpScore -= ch * 10000;
+    printSmallChar(SCREEN, 0, 27, ch, BLUE, VERT);
+    ch = (uint8_t)(tmpScore /  1000); tmpScore -= ch * 1000;
+    printSmallChar(SCREEN, 3, 27, ch, CYAN, VERT);
+    ch = (uint8_t)(tmpScore /   100); tmpScore -= ch * 100;
+    printSmallChar(SCREEN, 6, 27, ch, BLUE, VERT);
+    ch = (uint8_t)(tmpScore /    10); tmpScore -= ch * 10;
+    printSmallChar(SCREEN, 9, 27, ch, CYAN, VERT);
+    printSmallChar(SCREEN,12, 27, (uint8_t)tmpScore, BLUE, VERT);
+} // printScore()
 
 /*-------------------------------------------------------------------------
   Purpose   : the Tetris Game Screen
@@ -825,7 +846,9 @@ void downOneRowInField(int8_t src_y)
 void tetrisGameScreen(void)
 {
     int8_t tmpY;
-
+    uint8_t mpy; // multiply factor for original Sega scoring system
+    
+    printScore(); // print Tetris current score
     if (gameFlags & (1<<NEW_GAME)) // Game just started
     {
         nextShape[0] = (RandomNumber() % 7); // | Fill in
@@ -842,10 +865,13 @@ void tetrisGameScreen(void)
 
     level = (score / LEVEL_GAIN) + 1; // increase level every LEVEL_GAIN points
     if (level > MAX_LEVEL) level = MAX_LEVEL;
+    if (level >= 8) 
+         mpy = 5;
+    else mpy = 1 + level>>1;
 
     if (gameFlags & (1<<PLACE_SHAPE)) // Check whether we need to save shape this frame
     {
-        if (y > SIZE_Y-2) // No way to build higher
+        if (y > TETRIS_SIZE_Y-2) // No way to build higher
         {
             gameFlags |= (1<<CLEAR_SHIFT);
             screen = 3; // Game over
@@ -856,12 +882,11 @@ void tetrisGameScreen(void)
         score += 10; // add 10 points for every positioned shape
 
         // scan the whole gaming field to look for rows that need to be erased
-        for (tmpY = 0; tmpY < TETRIS_MAX_Y; tmpY++)
+        for (tmpY = 0; tmpY < TETRIS_SIZE_Y; tmpY++)
         {
             if (((fieldr[tmpY] | fieldg[tmpY] | fieldb[tmpY]) & TETRIS_MASK_X) == TETRIS_MASK_X)
             {   // We have found a full row
                 drawLine(FIELD, 0, tmpY, TETRIS_WALL_X-1, tmpY, WHITE); // Fill row with white in playfield
-                score += 100; // add 100 points for every deleted row
                 count  = 0;
                 gameFlags |= (1<<ROW_FOUND);
             } // if
@@ -872,7 +897,7 @@ void tetrisGameScreen(void)
 
     if (gameFlags & (1<<NEW_SHAPE)) // pop shape in line and generate new shape
     {
-        y            = SIZE_Y+1; // start OUTSIDE of playfield
+        y            = TETRIS_SIZE_Y+1; // start OUTSIDE of playfield
         x            = 6;        //
         rotation     = EAST;     // default rotation
         shape        = nextShape[0];
@@ -883,25 +908,29 @@ void tetrisGameScreen(void)
     } // if
 
     copyFieldToScreen(); // Copy the Tetris playfield to the screen
-    drawLine(SCREEN, TETRIS_WALL_X, 0, TETRIS_WALL_X, TETRIS_MAX_Y-1, WHITE); // Line separating gaming area from shape stack
-    drawShape(SCREEN, SIZE_X-2, TETRIS_MAX_Y- 2, nextShape[0], nextShape[0] == TYPE_I ? NORTH : EAST);	// |   Shapes
-    drawShape(SCREEN, SIZE_X-2, TETRIS_MAX_Y- 7, nextShape[1], nextShape[1] == TYPE_I ? NORTH : EAST);	// |    in a
-    drawShape(SCREEN, SIZE_X-2, TETRIS_MAX_Y-12, nextShape[2], nextShape[2] == TYPE_I ? NORTH : EAST);	// | Shape stack
+    for (uint8_t i = 0; i < TETRIS_SIZE_Y; i++) setPixel(SCREEN,12,i,WHITE); // Line separating gaming area from shape stack
+    drawShape(SCREEN, SIZE_X-2, TETRIS_SIZE_Y- 2, nextShape[0], nextShape[0] == TYPE_I ? NORTH : EAST);	// |   Shapes
+    drawShape(SCREEN, SIZE_X-2, TETRIS_SIZE_Y- 7, nextShape[1], nextShape[1] == TYPE_I ? NORTH : EAST);	// |    in a
+    drawShape(SCREEN, SIZE_X-2, TETRIS_SIZE_Y-12, nextShape[2], nextShape[2] == TYPE_I ? NORTH : EAST);	// | Shape stack
     drawShape(SCREEN, x, y, shape, rotation); // Draw current playable shape
 
     if (gameFlags & (1<<ROW_FOUND))
     {
         if (count > (MAX_LEVEL - level)) 
         {   // Full row stays white until we reach needed frame count
-            for (tmpY = 0; tmpY < TETRIS_MAX_Y; tmpY++)
+            uint8_t nrFullRows = 0;
+            for (tmpY = 0; tmpY < TETRIS_SIZE_Y; tmpY++)
             {
                 if (((fieldr[tmpY] | fieldg[tmpY] | fieldb[tmpY]) & TETRIS_MASK_X) == TETRIS_MASK_X)
                 {   // We have found a full row, shift gaming area 1 down
                     downOneRowInField(tmpY); // The Tetris playfield drops 1 row, removing the full row
                     copyFieldToScreen();     // Copy the Tetris playfield to the Screen
                     tmpY--; // since we just deleted a row, we need to update the row number
+                    nrFullRows++;
                 } // if
             } // for
+            // Original Sega Scoring system: https://tetris.wiki/Scoring
+            score += (uint16_t)100 * nrFullRows * mpy;
             gameFlags &= ~(1<<ROW_FOUND);
             count = 0;
         } // if
@@ -916,10 +945,12 @@ void tetrisGameScreen(void)
         else
         {
             gameFlags &= ~(1 << PLACE_SHAPE);
-            y--;
+            y--;     // decrease y-coordinate
         } // else
         if (gameFlags & (1<<FAST_DROP))
-            score++; // add one point for every lowering with a fast drop
+        {
+            score += mpy; // add points for every lowering with a fast drop
+        } // if
         count = 0;
     } // if
     count++;

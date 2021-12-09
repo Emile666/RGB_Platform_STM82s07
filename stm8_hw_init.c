@@ -22,10 +22,10 @@
 #include "scheduler.h"
 #include "pixel.h"
 
-extern uint32_t t2_millis;       // needed for delay_msec()
-extern playfield_color rgb_bufr; // The actual status of the red leds
-extern playfield_color rgb_bufg; // The actual status of the green leds
-extern playfield_color rgb_bufb; // The actual status of the blue leds
+extern uint32_t t2_millis;  // needed for delay_msec()
+extern uint16_t rgb_bufr[]; // The actual status of the red leds
+extern uint16_t rgb_bufg[]; // The actual status of the green leds
+extern uint16_t rgb_bufb[]; // The actual status of the blue leds
 
 uint8_t current_row = 0;         // Index which row in the hardware is enabled
 
@@ -123,6 +123,7 @@ __interrupt void TIM2_UPD_OVF_IRQHandler(void)
     scheduler_isr();   // call the ISR routine for the task-scheduler
     buzzer_isr();      // buzzer ISR routine
     
+    ROWENAb = 0;
     uint16_t colmask = 0x0001; // start with bit 0 to send to shift-register
     for (uint8_t i = 0; i < SIZE_X; i++)
     {   // shift color bits to hardware shift-registers
@@ -134,6 +135,7 @@ __interrupt void TIM2_UPD_OVF_IRQHandler(void)
         colmask <<= 1; // select next bit
         SHCPb     = 0; // set clock to 0 again
     } // for i
+    
     // Now clock bits from shift-registers to output-registers
     STCPb = 1; // set clock to 1
     //---------------------------------------------------------------

@@ -21,13 +21,14 @@
 #include "pixel.h"
 #include "tetris.h"
 
-extern playfield_color rgb_bufr; // Buffered version of the red leds
-extern playfield_color rgb_bufg; // Buffered version of the green leds
-extern playfield_color rgb_bufb; // Buffered version of the blue leds
-extern uint16_t        fieldr[]; // Tetris playfield red leds
-extern uint16_t        fieldg[]; // Tetris playfield green leds
-extern uint16_t        fieldb[]; // Tetris playfield blue leds
+extern uint16_t rgb_bufr[]; // Buffered version of the red leds
+extern uint16_t rgb_bufg[]; // Buffered version of the green leds
+extern uint16_t rgb_bufb[]; // Buffered version of the blue leds
+extern uint16_t fieldr[]; // Tetris playfield red leds
+extern uint16_t fieldg[]; // Tetris playfield green leds
+extern uint16_t fieldb[]; // Tetris playfield blue leds
 extern uint8_t  atascii[128][8]; // Atari XL Font
+extern uint8_t  font3x5[][5];    // Small font for score
 
 /*-------------------------------------------------------------------------
  Purpose   : This function clears an entire screen.
@@ -38,7 +39,7 @@ void clearScreen(bool screen)
 {
     if (screen == FIELD)
     {   // Tetris playfield
-        for (uint8_t i = 0; i < TETRIS_MAX_Y; i++)
+        for (uint8_t i = 0; i < TETRIS_SIZE_Y; i++)
         {
             fieldr[i] = fieldg[i] = fieldb[i] = BLACK;
         } // for i
@@ -64,7 +65,7 @@ void setPixel(bool screen, int8_t x, int8_t y, uint8_t col)
 {
     if (screen == FIELD)
     {   // Tetris playfield
-        if ((x >= 0) && (y >= 0) && (x < TETRIS_MAX_X) && (y < TETRIS_MAX_Y))
+        if ((x >= 0) && (y >= 0) && (x < TETRIS_SIZE_X) && (y < TETRIS_SIZE_Y))
         {
             uint16_t bt = (1<<x);
             if ((col & RED)   ==  RED)   
@@ -110,7 +111,7 @@ uint8_t getPixel(bool screen, int8_t x, int8_t y)
     
     if (screen == FIELD)
     {   // Tetris playfield
-        if ((x >= 0) && (y >= 0) && (x < TETRIS_MAX_X) && (y < TETRIS_MAX_Y))
+        if ((x >= 0) && (y >= 0) && (x < TETRIS_SIZE_X) && (y < TETRIS_SIZE_Y))
         {
             bt = (1<<x);
             if ((fieldr[y] & bt) == bt) col |= RED;
@@ -174,6 +175,46 @@ void printChar(bool screen, int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv
         } // for
     } // if
 } // printChar()
+
+/*-------------------------------------------------------------------------
+ Purpose   : This function draws a character with the specified colour on a
+             screen. The (x,y) coordinate is that of the lower-left pixel in vertical
+ 	     orientation, or the lower-right pixel in horizontal orientation.
+  Variables: screen : [FIELD,SCREEN], Tetris playfield or main-screen
+             x      : the x position where the char is printed [0..SIZE_X-1]
+             y      : the y position where the char is printed [0..SIZE_Y-1]
+             ch     : the character to display on the playfield
+             colour : the specified colour for the Tetris block
+             hv     : Horizontal (HOR) or Vertical (VERT) orientation
+             Returns: -
+  -------------------------------------------------------------------------*/
+void printSmallChar(bool screen, int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv)
+{
+    uint8_t byte, data, bit;
+    
+    if ((x >= 0) && (y >= 0) && (x < SIZE_X) && (y < MAX_Y))
+    {
+        for (byte = 0; byte < 5; byte++)
+        {
+            data = font3x5[ch][4-byte];
+            for (bit = 0; bit < 3; bit++)
+            {
+                if (hv == VERT)
+                {   // Vertical
+                    if (data & (1<<(2-bit)))
+                         setPixel(screen,x+bit,y+byte,col);
+                    else setPixel(screen,x+bit,y+byte,BLACK);
+                } // if
+                else
+                {   // Horizontal
+                    if (data & (1<<(2-bit)))
+                         setPixel(screen,x+byte,y+2-bit,col);
+                    else setPixel(screen,x+byte,y+2-bit,BLACK);
+                } // else
+            } // for
+        } // for
+    } // if
+} // printSmallChar()
 
 /*-------------------------------------------------------------------------
  Purpose   : This function draws a line on a screen

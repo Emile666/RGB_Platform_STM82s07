@@ -23,12 +23,10 @@
 #include "stm8_hw_init.h"
 
 // List of directions
-//#define LEFT  (0)
-//#define RIGHT (1)
-#define HOR   (false) /* Horizontal orientation for printChar() */
-#define VERT  (true)  /* Vertical   orientation for printChar() */
-#define LK1   (0x01)
-#define LK2   (0x02)
+#define HOR    (false) /* Horizontal orientation for printChar() */
+#define VERT   (true)  /* Vertical   orientation for printChar() */
+#define LK1    (0x01)  /* 1 = lichtkrant 1 text is changed */
+#define LK2    (0x02)  /* 1 = lichtkrant 2 text is changed */
 
 #define SCREEN (0) /* Main screen for RGB-matrices */
 #define FIELD  (1) /* Tetris playfield */
@@ -44,12 +42,11 @@
 #define CYAN    (BLUE | GREEN)
 #define WHITE   (BLUE | GREEN | RED)
 
-typedef uint16_t  playfield_color[MAX_Y]; // Typedef for 1 playfield color
-
 void    clearScreen(bool screen);
 void    setPixel(bool screen, int8_t x, int8_t y, uint8_t col);
 uint8_t getPixel(bool screen, int8_t x, int8_t y);
 void    printChar(bool screen, int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv);
+void    printSmallChar(bool screen, int8_t x, int8_t y, uint8_t ch, uint8_t col, bool hv);
 void    drawLine(bool screen, int8_t x0, int8_t y0, int8_t x1, int8_t y1, uint8_t col);
 
 #endif

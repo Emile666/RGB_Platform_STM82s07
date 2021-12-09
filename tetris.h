@@ -25,13 +25,13 @@
 //---------------------------------------------------------------------------
 // TETRIS_WALL_X: The x-position of the Tetris wall
 // TETRIS_MASK_X: bits are set to 1 if it belong to the Tetris playfield
-// TETRIS_MAX_X : Size of playfield in x-direction (columns)
-// TETRIS_MAX_Y : Size of playfield in y-direction (rows)
+// TETRIS_SIZE_X: Size of playfield in x-direction (columns)
+// TETRIS_SIZE_Y: Size of playfield in y-direction (rows)
 //---------------------------------------------------------------------------
-#define TETRIS_WALL_X (SIZE_X-4)        /* x-coordinate of wall, runs from y = 0..TETRIS_MAX_Y */
+#define TETRIS_WALL_X (SIZE_X-4)        /* x-coordinate of wall, runs from y = 0..TETRIS_SIZE_Y-1 */
 #define TETRIS_MASK_X (0x0FFF)          /* should contain bits up to TETRIS_WALL_X */
-#define TETRIS_MAX_X  (TETRIS_WALL_X)   /* Default x-size of Tetris playfield */
-#define TETRIS_MAX_Y  (20)              /* Default y-size of Tetris playfield */
+#define TETRIS_SIZE_X (TETRIS_WALL_X)   /* Default x-size of Tetris playfield */
+#define TETRIS_SIZE_Y (20)              /* Default y-size of Tetris playfield */
 
 //---------------------------------------------------------------------------
 // MAX_LEVEL    : Max. level of a game. Warning! the higher the maximum level,
