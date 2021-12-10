@@ -62,5 +62,6 @@ uint8_t add_task(void (*task_ptr)(), char *Name, uint16_t delay, uint16_t period
 uint8_t set_task_time_period(uint16_t Period, char *Name);
 uint8_t enable_task(char *Name, bool exclusive);
 uint8_t disable_task(char *Name);
+uint8_t run_now_task(char *Name);
 
 #endif

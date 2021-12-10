@@ -232,3 +232,31 @@ uint8_t set_task_time_period(uint16_t Period, char *Name)
     else return NO_ERR;	
 } // set_task_time_period()
 
+/*-----------------------------------------------------------------------------
+  Purpose  : Set the task to run immediately
+  Variables: Name  : the name of the task
+  Returns  : error [NO_ERR, ERR_NAME, ERR_EMPTY]
+  ---------------------------------------------------------------------------*/
+uint8_t run_now_task(char *Name)
+{
+    uint8_t index = 0;
+    bool    found = false;
+    
+    //go through the active tasks
+    if(task_list[index].Period != 0)
+    {
+        while ((index < MAX_TASKS) && (task_list[index].Period != 0) && !found)
+        {
+            if (!strcmp(task_list[index].Name,Name))
+            {
+                task_list[index].pFunction(); // run the task
+                found = true;
+            } // if
+            index++;
+        } // while
+    } // if
+    else return ERR_EMPTY;
+    if (!found)
+        return ERR_NAME;
+    else return NO_ERR;	
+} // run_now_task()

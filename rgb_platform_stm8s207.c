@@ -24,7 +24,7 @@
 #include "i2c_bb.h"
 #include "i2c_ds3231_bb.h"
 
-char   *revision_nr = "0.31\n"; // RGB Platform SW revision number
+char   *revision_nr = "0.32";   // RGB Platform SW revision number
 extern uint8_t atascii[128][8]; // Atari XL Font
 extern char rs232_inbuf[];
 bool   dst_active = false; // true = Daylight Saving Time active
@@ -64,8 +64,8 @@ const char months[13][10] = {"","Januari","Februari","Maart"    ,"April"  ,"Mei"
 /*-------------------------------------------------------------------------
 Purpose   : This is the lichtkrant task. It displays text on two rows,
             independently from each other. Text is displayed horizontally.
-			The top-row runs twice as fast as the bottom row, top-row shows
-			date, time and temperature, bottom row shows a custom text.
+	    The top-row runs twice as fast as the bottom row, top-row shows
+	    date, time and temperature, bottom row shows a custom text.
             Variables: see list of global variables.
 Returns  : -
 -------------------------------------------------------------------------*/
@@ -145,7 +145,6 @@ void lichtkrant1(void)
             } // for cy
             chi = (uint8_t)lk1[cur_row1_idx]; // get new character
             col = lk1c[cur_row1_idx];
-            if (chi < 96) chi -= 32; // Convert from ASCII to internal Atari code
             for (bit = 0; bit < 8; bit++)
             {
                 if (atascii[chi][7-bit] & (1<<(row1_bit)))
@@ -216,7 +215,6 @@ void lichtkrant2(void)
             } // for cy
             chi = (uint8_t)lk2[cur_row2_idx]; // get new character
             col = lk2c[cur_row2_idx];         // get color of new character
-            if (chi < 96) chi -= 32; // Convert from ASCII to internal Atari code
             for (bit = 0; bit < 8; bit++)
             {
                 if (atascii[chi][7-bit] & (1<<(row2_bit)))
@@ -331,6 +329,7 @@ void print_revision_nr(void)
 {
     uart1_printf("RGB Platform STM8S207R8, rev. ");
     uart1_printf(revision_nr);
+    uart1_printf("\n");
 } // print_ebrew_revision()
 
 /*------------------------------------------------------------------
@@ -455,13 +454,15 @@ void clock_task(void)
     
     ds3231_gettime(&dt);
     check_and_set_summertime();
-    sprintf(lk2,"%s %d %s %d %02d:%02d:%02d %s ",dows[dt.dow&0x07],
+    sprintf(lk2,"Het is nu %s %d %s %d %02d:%02d:%02d %s ",dows[dt.dow&0x07],
                dt.day , months[dt.mon], dt.year,
                dt.hour, dt.min, dt.sec, dst_active ? "Zomertijd" : "Wintertijd");
     uint16_t temp = ds3231_gettemp();
-    sprintf(s,"%d.",temp>>2);
+    sprintf(s," %d.",temp>>2);
     strcat(lk2,s);
-    sprintf(s,"%d Graden Celsius  ",25*(temp & 0x03));
+    sprintf(s,"%d%cC ",25*(temp & 0x03),31); // character 31 is °
+    strcat(lk2,s);
+    sprintf(s,"Rev.%s    ",revision_nr);
     strcat(lk2,s);
     if (one)
     {
@@ -495,17 +496,17 @@ int main(void)
     scheduler_init(); // init. task-scheduler
     switch (dip_sw)
     {
-        case 1 : add_task(tetrisMain    , "tetris", 150,  50); break; // Tetris game
-        case 15: add_task(test_playfield, "test"  , 175,2000); break; // Test
-       default : add_task(lichtkrant    , "lkrant", 100,  50);        // Lichtkrant
-                 add_task(clock_task    , "rtc"   ,  75,1000); break; // read date & time from DS3231
+        case 1 : add_task(tetrisMain    , "tetris", 150,   50); break; // Tetris game
+        case 15: add_task(test_playfield, "test"  , 175, 2000); break; // Test
+       default : add_task(lichtkrant    , "lkrant", 100,   50);        // Lichtkrant
+                 add_task(clock_task    , "rtc"   ,  75,20000);        // read date & time from DS3231
+                 run_now_task("rtc");  // run task now, so date/time are initialized
                  break;
     } // switch
-    
     __enable_interrupt(); // set global interrupt enable, start task-scheduler
 	
     print_revision_nr();  // print revision nr to UART 1
-    sprintf(s,"CLK: 0x%X ",clk);
+    sprintf(s,"\nCLK: 0x%X ",clk);
     uart1_printf(s);
     if      (clk == HSI) uart1_printf("HSI\n");
     else if (clk == LSI) uart1_printf("LSI\n");
@@ -515,8 +516,6 @@ int main(void)
     set_buzzer(FREQ_4KHZ,1);
     eep_read_string(EEP_TEXT1,lk1);         // read top-row of lichtkrant
     eep_read_string(EEP_COL1,(char*)lk1c);  // read colors of top-row
-    eep_read_string(EEP_TEXT2,lk2);         // read bottom-row of lichtkrant
-    eep_read_string(EEP_COL2,(char *)lk2c); // read colors of bottom-row
     
     while (true)
     {   // main loop
